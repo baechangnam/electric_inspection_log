@@ -1,0 +1,377 @@
+// lib/widgets/transmission_voltage_double_widget.dart
+
+import 'package:flutter/material.dart';
+import 'inspection_entry.dart';
+import 'judgment_picker.dart';
+import '../data/models/hvItem.dart';
+import 'numeric_keypad.dart';
+
+typedef DoubleLineChanged = void Function({
+  required int index,           // 9 or 10
+  required InspectionEntry left,
+  required InspectionEntry middle,
+  required double value,        // 입력된 P.V 전압 (DC)
+});
+
+class TransmissionVoltageDoubleWidget extends StatefulWidget {
+  final List<InspectionEntry> leftEntries;   // [9,10]
+  final List<InspectionEntry> middleEntries; // [9,10]
+  final SimpleHvLogEntry entry;              // pvVoltage 사용
+  final DoubleLineChanged onLineChanged;
+
+  const TransmissionVoltageDoubleWidget({
+    super.key,
+    required this.leftEntries,
+    required this.middleEntries,
+    required this.entry,
+    required this.onLineChanged,
+  }) : assert(leftEntries.length == 2 && middleEntries.length == 2);
+
+  @override
+  State<TransmissionVoltageDoubleWidget> createState() =>
+      _TransmissionVoltageDoubleWidgetState();
+}
+
+class _TransmissionVoltageDoubleWidgetState
+    extends State<TransmissionVoltageDoubleWidget> {
+  Future<void> _showPVInput(int overallIndex, double currentValue) async {
+    final result = await showNumericKeypad(
+      context,
+      title: 'P.V 전압 (DC) 입력',
+      initialValue: currentValue,
+    );
+    if (result != null) {
+      setState(() => widget.entry.pvVoltage = result);
+       final idx = overallIndex - 10;  // 10→0, 11→1
+      widget.onLineChanged(
+        index: overallIndex,
+        left:   widget.leftEntries[idx],
+        middle: widget.middleEntries[idx],
+        value: result,
+      );
+    }
+  }
+
+  Widget _fourTwoThreeBlock(
+    InspectionEntry entry,
+    double baseFont, {
+    required VoidCallback onJudgmentTap,
+    required VoidCallback onRemarkTap,
+  }) {
+    return Row(
+      children: [
+        // 제목 (4)
+        Expanded(
+          flex: 4,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border:
+                  Border.all(color: Colors.grey.shade300, width: 0.5),
+            ),
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                entry.title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: baseFont,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ),
+        // 판정 (2)
+        Expanded(
+          flex: 2,
+          child: GestureDetector(
+            onTap: onJudgmentTap,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border:
+                    Border.all(color: Colors.grey.shade300, width: 0.5),
+              ),
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  entry.judgment == JudgmentOption.clear
+                      ? ''
+                      : entry.judgment.label,
+                  style: TextStyle(
+                    fontSize: baseFont,
+                    fontWeight: FontWeight.bold,
+                    color: entry.judgment == JudgmentOption.clear
+                        ? Colors.grey
+                        : Colors.black,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        // 비고 (3)
+        Expanded(
+          flex: 3,
+          child: GestureDetector(
+            onTap: onRemarkTap,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border:
+                    Border.all(color: Colors.grey.shade300, width: 0.5),
+              ),
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  entry.remark.isEmpty ? '' : entry.remark,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  style: TextStyle(
+                    fontSize: baseFont,
+                    fontStyle: entry.remark.isEmpty
+                        ? FontStyle.italic
+                        : FontStyle.normal,
+                    color:
+                        entry.remark.isEmpty ? Colors.grey : Colors.black,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // 두 줄: overallIndex 9 (i=0), 10 (i=1)
+    return LayoutBuilder(builder: (ctx, constraints) {
+      final totalH = constraints.maxHeight;
+      final lineH = totalH / 2;
+      final baseFont = lineH * 0.55;
+
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // LEFT 4:2:3 × 2줄
+          Expanded(
+            flex: 9,
+            child: Column(
+              children: List.generate(2, (i) {
+                final idx = 10 + i;
+                final left = widget.leftEntries[i];
+                final middle = widget.middleEntries[i];
+                return SizedBox(
+                  height: lineH,
+                  child: _fourTwoThreeBlock(
+                    left,
+                    baseFont,
+                    onJudgmentTap: () async {
+                      final picked = await showJudgmentPicker(
+                          context, left.judgment);
+                      if (picked != null) {
+                        setState(() => left.judgment = picked);
+                        widget.onLineChanged(
+                          index: idx,
+                          left: left,
+                          middle: middle,
+                          value: widget.entry.pvVoltage,
+                        );
+                      }
+                    },
+                    onRemarkTap: () async {
+                      final controller =
+                          TextEditingController(text: left.remark);
+                      final result = await showDialog<String>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: Text('비고 입력',
+                              style: TextStyle(fontSize: baseFont)),
+                          content: TextField(
+                            controller: controller,
+                            maxLines: 3,
+                            style: TextStyle(fontSize: baseFont),
+                            decoration: const InputDecoration(
+                                border: OutlineInputBorder()),
+                          ),
+                          actions: [
+                            TextButton(
+                                onPressed: () => Navigator.pop(ctx, null),
+                                child: Text('취소',
+                                    style: TextStyle(
+                                        fontSize: baseFont * 0.9))),
+                            TextButton(
+                                onPressed: () => Navigator.pop(
+                                    ctx, controller.text.trim()),
+                                child: Text('저장',
+                                    style: TextStyle(
+                                        fontSize: baseFont * 0.9))),
+                          ],
+                        ),
+                      );
+                      if (result != null) {
+                        setState(() => left.remark = result);
+                        widget.onLineChanged(
+                          index: idx,
+                          left: left,
+                          middle: middle,
+                          value: widget.entry.pvVoltage,
+                        );
+                      }
+                    },
+                  ),
+                );
+              }),
+            ),
+          ),
+
+          // MIDDLE 4:2:3 × 2줄
+          Expanded(
+            flex: 9,
+            child: Column(
+              children: List.generate(2, (i) {
+                final idx = 10 + i;
+                final left = widget.leftEntries[i];
+                final middle = widget.middleEntries[i];
+                return SizedBox(
+                  height: lineH,
+                  child: _fourTwoThreeBlock(
+                    middle,
+                    baseFont,
+                    onJudgmentTap: () async {
+                      final picked = await showJudgmentPicker(
+                          context, middle.judgment);
+                      if (picked != null) {
+                        setState(() => middle.judgment = picked);
+                        widget.onLineChanged(
+                          index: idx,
+                          left: left,
+                          middle: middle,
+                          value: widget.entry.pvVoltage,
+                        );
+                      }
+                    },
+                    onRemarkTap: () async {
+                      final controller =
+                          TextEditingController(text: middle.remark);
+                      final result = await showDialog<String>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: Text('비고 입력',
+                              style: TextStyle(fontSize: baseFont)),
+                          content: TextField(
+                            controller: controller,
+                            maxLines: 3,
+                            style: TextStyle(fontSize: baseFont),
+                            decoration: const InputDecoration(
+                                border: OutlineInputBorder()),
+                          ),
+                          actions: [
+                            TextButton(
+                                onPressed: () => Navigator.pop(ctx, null),
+                                child: Text('취소',
+                                    style: TextStyle(
+                                        fontSize: baseFont * 0.9))),
+                            TextButton(
+                                onPressed: () => Navigator.pop(
+                                    ctx, controller.text.trim()),
+                                child: Text('저장',
+                                    style: TextStyle(
+                                        fontSize: baseFont * 0.9))),
+                          ],
+                        ),
+                      );
+                      if (result != null) {
+                        setState(() => middle.remark = result);
+                        widget.onLineChanged(
+                          index: idx,
+                          left: left,
+                          middle: middle,
+                          value: widget.entry.pvVoltage,
+                        );
+                      }
+                    },
+                  ),
+                );
+              }),
+            ),
+          ),
+
+          // RIGHT: 두 줄 병합, 내부 4:4:2
+          Expanded(
+            flex: 10,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: Colors.grey.shade300, width: 0.5),
+              ),
+              child: Row(
+                children: [
+                  // 1) Label (P.V 전압(DC))
+                  Expanded(
+                    flex: 4,
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'P.V 전압\n(DC)',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: baseFont,
+                            fontWeight: FontWeight.bold,
+                            height: 1.2,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // 2) 입력 셀
+                  Expanded(
+                    flex: 4,
+                    child: GestureDetector(
+                      // 언제나 overallIndex=10 으로 호출
+                      onTap: () => _showPVInput(10, widget.entry.pvVoltage),
+                      child: Center(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            widget.entry.pvVoltage == 0
+                                ? '-'
+                                : widget.entry.pvVoltage.toStringAsFixed(0),
+                            style: TextStyle(fontSize: baseFont),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // 3) 단위 'V'
+                  Expanded(
+                    flex: 2,
+                    child: Center(
+                      child: Text(
+                        'V',
+                        style: TextStyle(
+                          fontSize: baseFont,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    });
+  }
+}

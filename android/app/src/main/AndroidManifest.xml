@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+    
     <application
-        android:label="electric_inspection_log"
+        android:label="다빈전기기술단"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

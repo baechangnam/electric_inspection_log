@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.example.electric_inspection_log"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+     ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
