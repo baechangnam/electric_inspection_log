@@ -48,6 +48,14 @@ class SimpleHvLogEntry {
   String managerMainName = '';
   String managerSubName = '';
 
+  Uint8List? managerMainSignature; // 안전관리자(정) 서명
+  Uint8List? managerSubSignature; // 안전관리자(부) 서명
+
+  double guidelineLowPre5; //전일
+  double guidelineLowCurrent9; //현재
+  double guidelineLowSum; //지침 차
+  double preMonthGenerationKwh; //전월발전량
+
   SimpleHvLogEntry({
     required this.selectedBoardId,
     required this.lowVoltageItems,
@@ -86,116 +94,141 @@ class SimpleHvLogEntry {
     this.measuredVoltageRtoT = 0.0,
     this.measuredVoltageN = 0.0,
     this.inspectionResultNumeric = '',
-    this.inspectionResultImage, 
-    this.inspectorName ='',
-     this.managerMainName ='',
-      this.managerSubName ='',
-    
+    this.inspectionResultImage,
+    this.inspectorName = '',
+    this.managerMainName = '',
+    this.managerSubName = '',
+    this.managerMainSignature,
+    this.managerSubSignature,
+
+    this.guidelineLowPre5 = 0.0,
+    this.guidelineLowCurrent9 = 0.0,
+    this.guidelineLowSum = 0.0,
+    this.preMonthGenerationKwh = 0.0,
   });
 
- factory SimpleHvLogEntry.fromJson(Map<String, dynamic> j) {
-  return SimpleHvLogEntry(
-    selectedBoardId: j['selectedBoardId'] ?? '',
-    lowVoltageItems: (j['lowVoltageItems'] as List? ?? [])
-        .map((e) => InspectionEntry.fromJson(e))
-        .toList(),
-    highVoltageItems: (j['highVoltageItems'] as List? ?? [])
-        .map((e) => InspectionEntry.fromJson(e))
-        .toList(),
-    solarItems: (j['solarItems'] as List? ?? [])
-        .map((e) => InspectionEntry.fromJson(e))
-        .toList(),
+  factory SimpleHvLogEntry.fromJson(Map<String, dynamic> j) {
+    Uint8List? _bytes(String? b64) =>
+        (b64 == null || b64.isEmpty) ? null : base64Decode(b64);
 
-    transmissionRtoS: _parseDouble(j['transmissionRtoS']),
-    transmissionStoT: _parseDouble(j['transmissionStoT']),
-    transmissionRtoT: _parseDouble(j['transmissionRtoT']),
-    pvVoltage: _parseDouble(j['pvVoltage']),
+    return SimpleHvLogEntry(
+      selectedBoardId: j['selectedBoardId'] ?? '',
+      lowVoltageItems: (j['lowVoltageItems'] as List? ?? [])
+          .map((e) => InspectionEntry.fromJson(e))
+          .toList(),
+      highVoltageItems: (j['highVoltageItems'] as List? ?? [])
+          .map((e) => InspectionEntry.fromJson(e))
+          .toList(),
+      solarItems: (j['solarItems'] as List? ?? [])
+          .map((e) => InspectionEntry.fromJson(e))
+          .toList(),
 
-    currentGenerationKwh: _parseDouble(j['currentGenerationKwh']),
-    cumulativeGenerationMwh: _parseDouble(j['cumulativeGenerationMwh']),
+      transmissionRtoS: _parseDouble(j['transmissionRtoS']),
+      transmissionStoT: _parseDouble(j['transmissionStoT']),
+      transmissionRtoT: _parseDouble(j['transmissionRtoT']),
+      pvVoltage: _parseDouble(j['pvVoltage']),
 
-    maxPower: _parseDouble(j['maxPower']),
-    avgPower: _parseDouble(j['avgPower']),
-    powerRatio: _parseDouble(j['powerRatio']),
-    powerFactor: _parseDouble(j['powerFactor']),
+      currentGenerationKwh: _parseDouble(j['currentGenerationKwh']),
+      cumulativeGenerationMwh: _parseDouble(j['cumulativeGenerationMwh']),
 
-    measuredVoltageRtoS: _parseDouble(j['measuredVoltageRtoS']),
-    measuredVoltageStoT: _parseDouble(j['measuredVoltageStoT']),
-    measuredVoltageRtoT: _parseDouble(j['measuredVoltageRtoT']),
-    measuredVoltageN: _parseDouble(j['measuredVoltageN']),
+      maxPower: _parseDouble(j['maxPower']),
+      avgPower: _parseDouble(j['avgPower']),
+      powerRatio: _parseDouble(j['powerRatio']),
+      powerFactor: _parseDouble(j['powerFactor']),
 
-    inspectionResultNumeric: j['inspectionResultNumeric'] ?? '',
-    inspectionResultImage: j['inspectionResultImage'] != null
-        ? base64Decode(j['inspectionResultImage'])
+      measuredVoltageRtoS: _parseDouble(j['measuredVoltageRtoS']),
+      measuredVoltageStoT: _parseDouble(j['measuredVoltageStoT']),
+      measuredVoltageRtoT: _parseDouble(j['measuredVoltageRtoT']),
+      measuredVoltageN: _parseDouble(j['measuredVoltageN']),
+
+      inspectionResultNumeric: j['inspectionResultNumeric'] ?? '',
+      inspectionResultImage: j['inspectionResultImage'] != null
+          ? base64Decode(j['inspectionResultImage'])
+          : null,
+
+      guidelineCurrent4: _parseDouble(j['guidelineCurrent4']),
+      guidelineCurrent5: _parseDouble(j['guidelineCurrent5']),
+      guidelineCurrent6: _parseDouble(j['guidelineCurrent6']),
+      guidelineCurrentSum: _parseDouble(j['guidelineCurrentSum']),
+      guidelinePrev9: _parseDouble(j['guidelinePrev9']),
+      guidelinePrev10: _parseDouble(j['guidelinePrev10']),
+      guidelinePrev11: _parseDouble(j['guidelinePrev11']),
+      guidelinePrevSum: _parseDouble(j['guidelinePrevSum']),
+
+      guidelineLowPre5: _parseDouble(j['guidelineLowPre5']),
+      guidelineLowCurrent9: _parseDouble(j['guidelineLowCurrent9']),
+      guidelineLowSum: _parseDouble(j['guidelineLowSum']),
+      preMonthGenerationKwh: _parseDouble(j['preMonthGenerationKwh']),
+
+      inspectorName: j['inspectorName'] ?? '',
+      managerMainName: j['managerMainName'] ?? '',
+      managerSubName: j['managerSubName'] ?? '',
+      managerMainSignature: _bytes(j['managerMainSignature'] as String?),
+      managerSubSignature: _bytes(j['managerSubSignature'] as String?),
+    );
+  }
+
+  String? _b64(Uint8List? bytes) =>
+      (bytes == null || bytes.isEmpty) ? null : base64Encode(bytes);
+
+  Map<String, dynamic> toJson() => {
+    'selectedBoardId': selectedBoardId,
+    'lowVoltageItems': lowVoltageItems.map((e) => e.toJson()).toList(),
+    'highVoltageItems': highVoltageItems.map((e) => e.toJson()).toList(),
+    'solarItems': solarItems.map((e) => e.toJson()).toList(),
+
+    // 송전 전압
+    'transmissionRtoS': transmissionRtoS,
+    'transmissionStoT': transmissionStoT,
+    'transmissionRtoT': transmissionRtoT,
+
+    // PV 전압
+    'pvVoltage': pvVoltage,
+
+    // 발전량
+    'currentGenerationKwh': currentGenerationKwh,
+    'cumulativeGenerationMwh': cumulativeGenerationMwh,
+
+    // 전력/배율/역율
+    'maxPower': maxPower,
+    'avgPower': avgPower,
+    'powerRatio': powerRatio,
+    'powerFactor': powerFactor,
+
+    // 측정 전압
+    'measuredVoltageRtoS': measuredVoltageRtoS,
+    'measuredVoltageStoT': measuredVoltageStoT,
+    'measuredVoltageRtoT': measuredVoltageRtoT,
+    'measuredVoltageN': measuredVoltageN,
+
+    // 점검 결과
+    'inspectionResultNumeric': inspectionResultNumeric,
+    'inspectionResultImage': inspectionResultImage != null
+        ? base64Encode(inspectionResultImage!)
         : null,
 
-    guidelineCurrent4: _parseDouble(j['guidelineCurrent4']),
-    guidelineCurrent5: _parseDouble(j['guidelineCurrent5']),
-    guidelineCurrent6: _parseDouble(j['guidelineCurrent6']),
-    guidelineCurrentSum: _parseDouble(j['guidelineCurrentSum']),
-    guidelinePrev9: _parseDouble(j['guidelinePrev9']),
-    guidelinePrev10: _parseDouble(j['guidelinePrev10']),
-    guidelinePrev11: _parseDouble(j['guidelinePrev11']),
-    guidelinePrevSum: _parseDouble(j['guidelinePrevSum']),
+    // 지침
+    'guidelineCurrent4': guidelineCurrent4,
+    'guidelineCurrent5': guidelineCurrent5,
+    'guidelineCurrent6': guidelineCurrent6,
+    'guidelineCurrentSum': guidelineCurrentSum,
+    'guidelinePrev9': guidelinePrev9,
+    'guidelinePrev10': guidelinePrev10,
+    'guidelinePrev11': guidelinePrev11,
+    'guidelinePrevSum': guidelinePrevSum,
+    'guidelineLowPre5': guidelineLowPre5,
+    'guidelineLowCurrent9': guidelineLowCurrent9,
+    'guidelineLowSum': guidelineLowSum,
+    'preMonthGenerationKwh': preMonthGenerationKwh,
 
-    inspectorName: j['inspectorName'] ?? '',
-    managerMainName: j['managerMainName'] ?? '',
-    managerSubName: j['managerSubName'] ?? '',
-  );
-}
+    // 결재자 이름
+    'inspectorName': inspectorName,
+    'managerMainName': managerMainName,
+    'managerSubName': managerSubName,
 
-
-Map<String, dynamic> toJson() => {
-  'selectedBoardId': selectedBoardId,
-  'lowVoltageItems': lowVoltageItems.map((e) => e.toJson()).toList(),
-  'highVoltageItems': highVoltageItems.map((e) => e.toJson()).toList(),
-  'solarItems': solarItems.map((e) => e.toJson()).toList(),
-
-  // 송전 전압
-  'transmissionRtoS': transmissionRtoS,
-  'transmissionStoT': transmissionStoT,
-  'transmissionRtoT': transmissionRtoT,
-
-  // PV 전압
-  'pvVoltage': pvVoltage,
-
-  // 발전량
-  'currentGenerationKwh': currentGenerationKwh,
-  'cumulativeGenerationMwh': cumulativeGenerationMwh,
-
-  // 전력/배율/역율
-  'maxPower': maxPower,
-  'avgPower': avgPower,
-  'powerRatio': powerRatio,
-  'powerFactor': powerFactor,
-
-  // 측정 전압
-  'measuredVoltageRtoS': measuredVoltageRtoS,
-  'measuredVoltageStoT': measuredVoltageStoT,
-  'measuredVoltageRtoT': measuredVoltageRtoT,
-  'measuredVoltageN': measuredVoltageN,
-
-  // 점검 결과
-  'inspectionResultNumeric': inspectionResultNumeric,
-  'inspectionResultImage': inspectionResultImage != null
-      ? base64Encode(inspectionResultImage!)
-      : null,
-
-  // 지침
-  'guidelineCurrent4': guidelineCurrent4,
-  'guidelineCurrent5': guidelineCurrent5,
-  'guidelineCurrent6': guidelineCurrent6,
-  'guidelineCurrentSum': guidelineCurrentSum,
-  'guidelinePrev9': guidelinePrev9,
-  'guidelinePrev10': guidelinePrev10,
-  'guidelinePrev11': guidelinePrev11,
-  'guidelinePrevSum': guidelinePrevSum,
-
-  // 결재자 이름
-  'inspectorName': inspectorName,
-  'managerMainName': managerMainName,
-  'managerSubName': managerSubName,
-};
+    'managerMainSignature': _b64(managerMainSignature),
+    'managerSubSignature': _b64(managerSubSignature),
+  };
 
   static double _parseDouble(dynamic v) {
     if (v == null) return 0.0;

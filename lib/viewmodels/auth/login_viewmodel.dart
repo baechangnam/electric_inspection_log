@@ -27,6 +27,7 @@ class LoginViewModel extends ChangeNotifier {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('loggedIn', true);
         await prefs.setString('memName', resp.memName);
+        await prefs.setString('mem_id', id);
       } else {
         errorMessage = resp.message;
       }
@@ -46,6 +47,8 @@ class LoginViewModel extends ChangeNotifier {
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('loggedIn');
+    await prefs.remove('memName');
+    await prefs.remove('mem_id');
     loginResult = null;
     notifyListeners();
   }

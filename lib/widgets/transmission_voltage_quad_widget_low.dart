@@ -15,7 +15,7 @@ typedef QuadLineChanged =
       required double? cumulativeGeneration, // 3-4행 입력값, 1-2행엔 null
     });
 
-class TransmissionVoltageQuadWidget extends StatefulWidget {
+class TransmissionVoltageQuadWidgetLow extends StatefulWidget {
   final List<InspectionEntry> leftEntries; // 길이 4
   final List<InspectionEntry> middleEntries; // 길이 4
   final SimpleHvLogEntry
@@ -23,7 +23,7 @@ class TransmissionVoltageQuadWidget extends StatefulWidget {
   final QuadLineChanged onLineChanged;
   final int tag;
 
-  const TransmissionVoltageQuadWidget({
+  const TransmissionVoltageQuadWidgetLow({
     Key? key,
     required this.leftEntries,
     required this.middleEntries,
@@ -39,7 +39,7 @@ class TransmissionVoltageQuadWidget extends StatefulWidget {
 }
 
 class _TransmissionVoltageQuadWidgetState
-    extends State<TransmissionVoltageQuadWidget> {
+    extends State<TransmissionVoltageQuadWidgetLow> {
   Future<void> _showNumberInput({
     required String title,
     required double currentValue,
@@ -606,10 +606,10 @@ class _TransmissionVoltageQuadWidgetState
                             child: GestureDetector(
                               onTap: () => _showNumberInput(
                                 title: genInputTitle,
-                                currentValue: widget.entry.currentGenerationKwh,
+                                currentValue: widget.entry.preMonthGenerationKwh,
                                 onValueChanged: (v) {
                                   setState(
-                                    () => widget.entry.currentGenerationKwh = v,
+                                    () => widget.entry.preMonthGenerationKwh = v,
                                   );
                                   widget.onLineChanged(
                                     index: baseIndex + 0, // 12
@@ -624,9 +624,9 @@ class _TransmissionVoltageQuadWidgetState
                                 child: FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Text(
-                                    widget.entry.currentGenerationKwh == 0
+                                    widget.entry.preMonthGenerationKwh == 0
                                         ? '-'
-                                        : widget.entry.currentGenerationKwh
+                                        : widget.entry.preMonthGenerationKwh
                                               .toStringAsFixed(0),
                                     style: TextStyle(fontSize: baseFont),
                                   ),

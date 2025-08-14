@@ -13,13 +13,16 @@ import 'package:electric_inspection_log/widgets/confrim_widget.dart';
 import 'package:electric_inspection_log/widgets/drawing_popup.dart';
 import 'package:electric_inspection_log/widgets/empty_line.dart';
 import 'package:electric_inspection_log/widgets/export_excel.dart';
+import 'package:electric_inspection_log/widgets/export_excel_low.dart';
 import 'package:electric_inspection_log/widgets/inspection_entry.dart';
 import 'package:electric_inspection_log/widgets/inspection_line_widget.dart';
 import 'package:electric_inspection_log/widgets/measure_widget.dart';
+import 'package:electric_inspection_log/widgets/measure_widget_low.dart';
 import 'package:electric_inspection_log/widgets/measurement_power_widget.dart';
 import 'package:electric_inspection_log/widgets/numeric_keypad.dart';
 import 'package:electric_inspection_log/widgets/trans_widget.dart';
 import 'package:electric_inspection_log/widgets/transmission_voltage_quad_widget.dart';
+import 'package:electric_inspection_log/widgets/transmission_voltage_quad_widget_low.dart';
 import 'package:electric_inspection_log/widgets/two_line_dart';
 import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
@@ -30,8 +33,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syncfusion_flutter_xlsio/xlsio.dart' as xlsio;
 
-class ExcelGrid extends StatefulWidget {
-  const ExcelGrid({Key? key}) : super(key: key);
+class ExcelGridLow extends StatefulWidget {
+  const ExcelGridLow({Key? key}) : super(key: key);
 
   @override
   _ExcelGridState createState() => _ExcelGridState();
@@ -48,7 +51,7 @@ class ExcelGrid extends StatefulWidget {
 //   return json.decode(res.body) as Map<String,dynamic>;
 // }
 
-class _ExcelGridState extends State<ExcelGrid> {
+class _ExcelGridState extends State<ExcelGridLow> {
   static const int rows = 11;
   static const int columns = 28;
 
@@ -207,13 +210,13 @@ class _ExcelGridState extends State<ExcelGrid> {
 
       if (index == 10 || index == 11) {
         if (value != null) {
-          hvLogEntry.pvVoltage = value;
+          //hvLogEntry.pvVoltage = value;
         }
       }
       // 3) index 가 12(current) or 13(cumulative)이면 발전량
       else if (index == 12) {
         if (value != null) {
-          hvLogEntry.currentGenerationKwh = value;
+          hvLogEntry.preMonthGenerationKwh = value;
         }
       } else if (index == 13) {
         if (value != null) {
@@ -259,6 +262,7 @@ class _ExcelGridState extends State<ExcelGrid> {
     // _inspectorController.text 에 작성된 값으로 메일 발송 로직 실행
     // print('메일 발송 대상: ${_inspectorController.text}');
     exportPdfAndExcel();
+   
   }
 
   void _onManagerMainSign() {
@@ -291,17 +295,17 @@ class _ExcelGridState extends State<ExcelGrid> {
 
     final wb = xlsio.Workbook();
     final s = wb.worksheets[0];
-    KoHighHeader.applyThinGrayBorders(s, 'A1:AB60');
-    KoHighHeader.apply(s);
+    KoHighHeaderLow.applyThinGrayBorders(s, 'A1:AB60');
+    KoHighHeaderLow.apply(s);
 
-    KoHighHeader.fillRow7(
+    KoHighHeaderLow.fillRow7(
       s,
       consumerName: _selectedConsumer,
       dateText: formattedDate,
       weatherText: _selectedWeather,
     );
 
-    KoHighHeader.fillRow910(
+    KoHighHeaderLow.fillRow910(
       s,
       incomingCapacity: incomingCapacity,
       generationCapacity: generationCapacity,
@@ -314,11 +318,11 @@ class _ExcelGridState extends State<ExcelGrid> {
       sumText: sumText,
     );
 
-    KoHighHeader.applyRow910(s);
-    KoHighHeader.applyRow12to16(s);
-    KoHighHeader.fillRow12to16(s);
+    KoHighHeaderLow.applyRow910(s);
+    KoHighHeaderLow.applyRow12to16(s);
+    KoHighHeaderLow.fillRow12to16(s);
 
-    KoHighHeader.drawOuterBorderCellwise(
+    KoHighHeaderLow.drawOuterBorderCellwise(
       s,
       r1: 9,
       c1: 1,
@@ -326,15 +330,15 @@ class _ExcelGridState extends State<ExcelGrid> {
       c2: 28,
     ); // 9~10행 전체(s);
 
-    KoHighHeader.applyRow18(s);
-    KoHighHeader.applyRow19(s); // 19행 헤더 (요청사항)
-    KoHighHeader.applyRows20to26FromEntry(s, hvLogEntry);
+    KoHighHeaderLow.applyRow18(s);
+    KoHighHeaderLow.applyRow19(s); // 19행 헤더 (요청사항)
+    KoHighHeaderLow.applyRows20to26FromEntry(s, hvLogEntry);
 
     // 레이아웃
-    KoHighHeader.applyRows27to29(s);
+    KoHighHeaderLow.applyRows27to29(s);
 
     // 값 채우기: 저압 7~9, 특고 7~9 아이템 사용 예
-    KoHighHeader.fillRows27to29(
+    KoHighHeaderLow.fillRows27to29(
       s,
       left: hvLogEntry.lowVoltageItems.sublist(7, 10),
       middle: hvLogEntry.highVoltageItems.sublist(7, 10),
@@ -343,27 +347,27 @@ class _ExcelGridState extends State<ExcelGrid> {
       vRT: hvLogEntry.transmissionRtoT,
     );
 
-    KoHighHeader.applyRows30to35(
+    KoHighHeaderLow.applyRows30to35(
       s,
       left6: hvLogEntry.lowVoltageItems.sublist(10, 16),
       middle6: hvLogEntry.highVoltageItems.sublist(10, 16),
-      pvVoltage: hvLogEntry.pvVoltage,
-      currentGenerationKwh: hvLogEntry.currentGenerationKwh,
+      pvVoltage: 0,
+      preMonthGenerationKwh: hvLogEntry.preMonthGenerationKwh,
       cumulativeGenerationMwh: hvLogEntry.cumulativeGenerationMwh,
     );
 
-    KoHighHeader.applyRowsVoltageAndPower(s, hvLogEntry, startRow: 36);
-    KoHighHeader.applyRow39Header(s, withBorder: false);
+    KoHighHeaderLow.applyRowsVoltageAndPower(s, hvLogEntry, startRow: 36);
+    KoHighHeaderLow.applyRow39Header(s, withBorder: false);
 
-    KoHighHeader.applyResultBlock(
+    KoHighHeaderLow.applyResultBlock(
       s,
       imageBytes: hvLogEntry.inspectionResultImage,
       text: hvLogEntry.inspectionResultNumeric,
     );
 
-    KoHighHeader.applyGuidelineRows(s, hvLogEntry, startRow: 43);
+    KoHighHeaderLow.applyGuidelineRows(s, hvLogEntry, startRow: 43);
 
-    KoHighHeader.applyFinalConfirmBlock(
+    KoHighHeaderLow.applyFinalConfirmBlock(
       s,
       startRow: 46, // 원하는 위치
       logoPng: logoBytes,
@@ -463,7 +467,7 @@ class _ExcelGridState extends State<ExcelGrid> {
 
       // 2) 엑셀 bytes 생성
       final excelBytes = await _buildExcelBytes();
-      final excelFileName = '고압일지_${_selectedConsumer}_${_ts()}.xlsx';
+      final excelFileName = '저얍일지_${_selectedConsumer}_${_ts()}.xlsx';
 
       // 3) 서버 업로드 (PDF+엑셀 동시)
       await uploadPdfAndExcelRegister(
@@ -525,7 +529,7 @@ class _ExcelGridState extends State<ExcelGrid> {
     final req = http.MultipartRequest('POST', uri)
       ..fields['reg_id'] = regId
       ..fields['pid'] = '3'
-      ..fields['tag'] = '1'
+      ..fields['tag'] = '2'
       ..fields['email'] = email
       ..fields['contents'] = _selectedConsumer
       // 파일명 필드
@@ -578,7 +582,7 @@ class _ExcelGridState extends State<ExcelGrid> {
     return double.tryParse(cleaned) ?? 0.0;
   }
 
-  // 거래처 선택: 모달 바텀시트 (검색 포함, 키보드 안전)
+    // 거래처 선택: 모달 바텀시트 (검색 포함, 키보드 안전)
   Future<BoardItem?> showBoardPickerBottomSheet(
     BuildContext context,
     List<BoardItem> list,
@@ -726,10 +730,7 @@ class _ExcelGridState extends State<ExcelGrid> {
       return;
     }
 
-    // 2) 다이얼로그로 선택
     final picked = await showBoardPickerBottomSheet(context, list);
-   
-
     if (picked == null) return;
 
     // 3) selectedBoardId 설정
@@ -871,7 +872,7 @@ class _ExcelGridState extends State<ExcelGrid> {
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            '전기설비 점검결과 통지서(고압용)',
+                            '전기설비 점검결과 통지서(저압용)',
                             style: TextStyle(
                               fontSize: 50, // 크게 잡아두면…
                               fontWeight: FontWeight.bold,
@@ -2096,8 +2097,8 @@ class _ExcelGridState extends State<ExcelGrid> {
                   //12_15행 현재 발전량, 누적발전량
                   Expanded(
                     flex: 4,
-                    child: TransmissionVoltageQuadWidget(
-                      tag: 1,
+                    child: TransmissionVoltageQuadWidgetLow(
+                      tag : 2,
                       leftEntries: [
                         hvLogEntry.lowVoltageItems[12],
                         hvLogEntry.lowVoltageItems[13],
@@ -2142,12 +2143,12 @@ class _ExcelGridState extends State<ExcelGrid> {
                         if (field == 'powerRatio') {
                           // (금일지침계 - 전추지침계) * powerRatio
                           final diff =
-                              hvLogEntry.guidelineCurrentSum -
-                              hvLogEntry.guidelinePrevSum;
+                              hvLogEntry.guidelineLowCurrent9 -
+                              hvLogEntry.guidelineLowPre5;
                           final generated = diff * value;
                           setState(() {
                             // 여기에 결과를 저장할 필드가 있다면 대입
-                            hvLogEntry.pvVoltage = generated;
+                              hvLogEntry.preMonthGenerationKwh = generated;
                           });
                         }
 
@@ -2355,50 +2356,22 @@ class _ExcelGridState extends State<ExcelGrid> {
           ),
 
           Expanded(
-            flex: 2,
-            child: GuidelineInputWidget(
+            flex: 1,
+            child: GuidelineInputWidgetLow(
               entry: hvLogEntry,
               onChanged: (field, value) {
                 setState(() {
                   // 1) 들어온 field 이름에 따라 entry 필드 업데이트
-                  switch (field) {
-                    case '현 지침 ④ 입력':
-                      hvLogEntry.guidelineCurrent4 = value;
-                      break;
-                    case '현 지침 ⑤ 입력':
-                      hvLogEntry.guidelineCurrent5 = value;
-                      break;
-                    case '현 지침 ⑥ 입력':
-                      hvLogEntry.guidelineCurrent6 = value;
-                      break;
-                    case '전 지침 ⑨ 입력':
-                      hvLogEntry.guidelinePrev9 = value;
-                      break;
-                    case '전 지침 ⑩ 입력':
-                      hvLogEntry.guidelinePrev10 = value;
-                      break;
-                    case '전 지침 ⑪ 입력':
-                      hvLogEntry.guidelinePrev11 = value;
-                      break;
-                    // (powerRatio, pvVoltage 등 다른 필드도 여기에 추가 가능)
-                  }
+              
 
-                  // 2) 합계 재계산
-                  hvLogEntry.guidelineCurrentSum =
-                      hvLogEntry.guidelineCurrent4 +
-                      hvLogEntry.guidelineCurrent5 +
-                      hvLogEntry.guidelineCurrent6;
-
-                  hvLogEntry.guidelinePrevSum =
-                      hvLogEntry.guidelinePrev9 +
-                      hvLogEntry.guidelinePrev10 +
-                      hvLogEntry.guidelinePrev11;
+                  hvLogEntry.guidelineLowSum =  hvLogEntry.guidelineLowCurrent9 -  hvLogEntry.guidelineLowPre5; 
+                  hvLogEntry.preMonthGenerationKwh =   hvLogEntry.guidelineLowSum*hvLogEntry.powerRatio ;
 
                   // 3) (선택) pvVoltage 자동 계산
-                  final diff =
-                      hvLogEntry.guidelineCurrentSum -
-                      hvLogEntry.guidelinePrevSum;
-                  hvLogEntry.pvVoltage = diff * hvLogEntry.powerRatio;
+                  // final diff =
+                  //     hvLogEntry.guidelineCurrentSum -
+                  //     hvLogEntry.guidelinePrevSum;
+                  // hvLogEntry.pvVoltage = diff * hvLogEntry.powerRatio;
 
                   saveDB();
                 });

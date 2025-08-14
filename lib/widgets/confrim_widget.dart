@@ -7,6 +7,9 @@ class ConfirmationView extends StatefulWidget {
   final TextEditingController inspectorController;
   final TextEditingController managerMainController;
   final TextEditingController managerSubController;
+  final Uint8List? initialManagerMainSignature;
+  final Uint8List? initialManagerSubSignature;
+  final void Function(String label, Uint8List? bytes)? onSignatureChanged;
 
   final void Function(String fieldName, String value)? onNameChanged;
 
@@ -18,7 +21,11 @@ class ConfirmationView extends StatefulWidget {
     required this.inspectorController,
     required this.managerMainController,
     required this.managerSubController,
-    required this.onSendEmail, this.onNameChanged,
+    required this.onSendEmail,
+    this.onNameChanged,
+    this.initialManagerMainSignature,
+    this.initialManagerSubSignature,
+    this.onSignatureChanged,
   }) : super(key: key);
 
   @override
@@ -29,6 +36,27 @@ class _ConfirmationViewState extends State<ConfirmationView> {
   Uint8List? _inspectorSignature;
   Uint8List? _managerMainSignature;
   Uint8List? _managerSubSignature;
+
+  @override
+  void initState() {
+    super.initState();
+    _managerMainSignature = widget.initialManagerMainSignature;
+    _managerSubSignature = widget.initialManagerSubSignature;
+  }
+
+  @override
+  void didUpdateWidget(covariant ConfirmationView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.initialManagerMainSignature !=
+        widget.initialManagerMainSignature) {
+      _managerMainSignature = widget.initialManagerMainSignature;
+    }
+    if (oldWidget.initialManagerSubSignature !=
+        widget.initialManagerSubSignature) {
+      _managerSubSignature = widget.initialManagerSubSignature;
+    }
+  }
 
   static const _cellBorder = BorderSide(color: Colors.black, width: 0.5);
 
@@ -54,7 +82,10 @@ class _ConfirmationViewState extends State<ConfirmationView> {
                   ),
                   alignment: Alignment.center,
                   padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                  child: Image.asset('assets/images/logos.png', fit: BoxFit.contain),
+                  child: Image.asset(
+                    'assets/images/logos.png',
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
 
@@ -94,7 +125,8 @@ class _ConfirmationViewState extends State<ConfirmationView> {
                             controller: widget.inspectorController,
                             actionLabel: '메일발송',
                             signature: _inspectorSignature,
-                            onSignatureAdded: (b) => setState(() => _inspectorSignature = b),
+                            onSignatureAdded: (b) =>
+                                setState(() => _inspectorSignature = b),
                             onMailTap: widget.onSendEmail,
                             baseFont: baseFont,
                           ),
@@ -103,7 +135,8 @@ class _ConfirmationViewState extends State<ConfirmationView> {
                             controller: widget.managerMainController,
                             actionLabel: '(인)',
                             signature: _managerMainSignature,
-                            onSignatureAdded: (b) => setState(() => _managerMainSignature = b),
+                            onSignatureAdded: (b) =>
+                                setState(() => _managerMainSignature = b),
                             baseFont: baseFont,
                           ),
                           _buildRow(
@@ -111,7 +144,8 @@ class _ConfirmationViewState extends State<ConfirmationView> {
                             controller: widget.managerSubController,
                             actionLabel: '(인)',
                             signature: _managerSubSignature,
-                            onSignatureAdded: (b) => setState(() => _managerSubSignature = b),
+                            onSignatureAdded: (b) =>
+                                setState(() => _managerSubSignature = b),
                             baseFont: baseFont,
                           ),
                         ],
@@ -151,7 +185,11 @@ class _ConfirmationViewState extends State<ConfirmationView> {
           ),
         ),
       );
-      if (pngBytes != null) onSignatureAdded(pngBytes);
+      if (pngBytes != null) {
+        onSignatureAdded(pngBytes);
+        // ✨ 메인으로 이벤트 전파
+        widget.onSignatureChanged?.call(label, pngBytes);
+      }
     }
 
     return Expanded(
@@ -167,7 +205,13 @@ class _ConfirmationViewState extends State<ConfirmationView> {
                 border: Border.fromBorderSide(_cellBorder),
               ),
               alignment: Alignment.center,
-              child: Text(label, style: TextStyle(fontWeight: FontWeight.bold, fontSize: baseFont)),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: baseFont,
+                ),
+              ),
             ),
           ),
 
@@ -183,27 +227,42 @@ class _ConfirmationViewState extends State<ConfirmationView> {
                     return AlertDialog(
                       title: Text(label),
                       content: TextField(
-                        controller: TextEditingController(text: controller.text),
+                        controller: TextEditingController(
+                          text: controller.text,
+                        ),
                         autofocus: true,
                         keyboardType: TextInputType.text,
-                        decoration: InputDecoration(hintText: placeholder, border: InputBorder.none),
+                        decoration: InputDecoration(
+                          hintText: placeholder,
+                          border: InputBorder.none,
+                        ),
                         onChanged: (v) => input = v,
                       ),
                       actions: [
-                        TextButton(onPressed: () => Navigator.pop(ctx), child: Text('취소')),
-                        TextButton(onPressed: () => Navigator.pop(ctx, input), child: Text('확인')),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: Text('취소'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, input),
+                          child: Text('확인'),
+                        ),
                       ],
                     );
                   },
                 );
                 if (result != null) {
                   setState(() {
-                   
-                    
+                    // 내쪽 스테이트 비우기
                     onSignatureAdded(null);
                   });
+                  controller.text = result;
 
-                   controller.text = result;
+                  // ✨ 메인에도 지워졌다고 알리기
+                  widget.onSignatureChanged?.call(label, null);
+
+                  // 이름 변경 콜백도 유지
+                  widget.onNameChanged?.call(label, result);
                 }
               },
               child: Container(
@@ -237,9 +296,24 @@ class _ConfirmationViewState extends State<ConfirmationView> {
                 alignment: Alignment.center,
                 child: actionLabel == '(인)'
                     ? (signature != null
-                        ? SizedBox.expand(child: Image.memory(signature, fit: BoxFit.fill))
-                        : Text('(인)', style: TextStyle(color: Colors.black, fontSize: baseFont)))
-                    : Text('메일발송', style: TextStyle(color: Colors.red, fontSize: baseFont, fontWeight: FontWeight.bold)),
+                          ? SizedBox.expand(
+                              child: Image.memory(signature, fit: BoxFit.fill),
+                            )
+                          : Text(
+                              '(인)',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: baseFont,
+                              ),
+                            ))
+                    : Text(
+                        '메일발송',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: baseFont,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
           ),

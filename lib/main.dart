@@ -1,6 +1,7 @@
 import 'package:electric_inspection_log/core/db/db_helper.dart';
 import 'package:electric_inspection_log/views/intro/intro_screen.dart';
 import 'package:electric_inspection_log/views/main/home_screen.dart';
+import 'package:electric_inspection_log/views/main/hv_log_entry_low_screen.dart';
 import 'package:electric_inspection_log/views/main/hv_log_entry_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -42,6 +43,7 @@ class MyApp extends StatelessWidget {
         '/login': (_) => const LoginScreen(),
         '/home': (_) => const HomeScreen(), // 여기를 HomeScreen 으로
         '/hv-log': (_) => const HvLogEntryScreen(), // ← 추가
+        '/hv-log_low': (_) => const HvLogEntryLowScreen(), // ← 추가
       },
     );
   }

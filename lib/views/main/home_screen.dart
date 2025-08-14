@@ -1,5 +1,7 @@
 // lib/views/home/home_screen.dart
+import 'package:electric_inspection_log/viewmodels/auth/login_viewmodel.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -25,9 +27,43 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _onLogoutPressed() async {
+    // 확인 팝업
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('로그아웃'),
+        content: const Text('로그아웃 하시겠어요?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true),  child: const Text('확인')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    // 1) 뷰모델 로그아웃 (SharedPreferences 정리 포함)
+    await context.read<LoginViewModel>().logout();
+
+    if (!mounted) return;
+    // 2) 라우트 스택 제거 후 로그인 화면으로
+    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('전기점검일지'),
+        actions: [
+          IconButton(
+            tooltip: '로그아웃',
+            icon: const Icon(Icons.logout),
+            onPressed: _onLogoutPressed,
+          ),
+        ],
+      ),
+      
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -58,7 +94,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       title: '전기설비 점검결과 통지서\n(저압용)',
                       icon: Icons.bolt,
                       color: Colors.blueGrey,
-                      onTap: () { /* TODO */ },
+                      onTap: () { 
+                          Navigator.of(context).pushNamed('/hv-log_low');
+                      },
                     ),
                   ],
                 ),

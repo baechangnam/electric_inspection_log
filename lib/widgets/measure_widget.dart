@@ -100,7 +100,7 @@ class _GuidelineInputWidgetState extends State<GuidelineInputWidget> {
                     flex: 3,
                     child: GestureDetector(
                       onTap: () => _showAndHandleInput(
-                        title: 'guidelineCurrent4',
+                        title: '현지침 4입력',
                         currentValue: widget.entry.guidelineCurrent4,
                         handleValue: (v) {
                           widget.entry.guidelineCurrent4 = v;
@@ -133,7 +133,7 @@ class _GuidelineInputWidgetState extends State<GuidelineInputWidget> {
                     flex: 3,
                     child: GestureDetector(
                       onTap: () => _showAndHandleInput(
-                        title: 'guidelineCurrent5',
+                        title: '현지침 5입력',
                         currentValue: widget.entry.guidelineCurrent5,
                         handleValue: (v) {
                           widget.entry.guidelineCurrent5 = v;
@@ -166,7 +166,7 @@ class _GuidelineInputWidgetState extends State<GuidelineInputWidget> {
                     flex: 3,
                     child: GestureDetector(
                       onTap: () => _showAndHandleInput(
-                        title: 'guidelineCurrent6',
+                        title: '현지침 6입력',
                         currentValue: widget.entry.guidelineCurrent6,
                         handleValue: (v) {
                           widget.entry.guidelineCurrent6 = v;
@@ -216,7 +216,7 @@ class _GuidelineInputWidgetState extends State<GuidelineInputWidget> {
                     flex: 3,
                     child: GestureDetector(
                       onTap: () => _showAndHandleInput(
-                        title: 'guidelinePrev9',
+                        title: '전지침 4입력',
                         currentValue: widget.entry.guidelinePrev9,
                         handleValue: (v) {
                           widget.entry.guidelinePrev9 = v;
@@ -249,7 +249,7 @@ class _GuidelineInputWidgetState extends State<GuidelineInputWidget> {
                     flex: 3,
                     child: GestureDetector(
                       onTap: () => _showAndHandleInput(
-                        title: 'guidelinePrev10',
+                        title: '전지침 10입력',
                         currentValue: widget.entry.guidelinePrev10,
                         handleValue: (v) {
                           widget.entry.guidelinePrev10 = v;
@@ -282,7 +282,7 @@ class _GuidelineInputWidgetState extends State<GuidelineInputWidget> {
                     flex: 3,
                     child: GestureDetector(
                       onTap: () => _showAndHandleInput(
-                        title: 'guidelinePrev11',
+                        title: '전지침 11입력',
                         currentValue: widget.entry.guidelinePrev11,
                         handleValue: (v) {
                           widget.entry.guidelinePrev11 = v;
