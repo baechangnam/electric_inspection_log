@@ -20,6 +20,7 @@ import 'package:electric_inspection_log/widgets/measure_widget.dart';
 import 'package:electric_inspection_log/widgets/measure_widget_low.dart';
 import 'package:electric_inspection_log/widgets/measurement_power_widget.dart';
 import 'package:electric_inspection_log/widgets/numeric_keypad.dart';
+import 'package:electric_inspection_log/widgets/template_widget.dart';
 import 'package:electric_inspection_log/widgets/trans_widget.dart';
 import 'package:electric_inspection_log/widgets/transmission_voltage_quad_widget.dart';
 import 'package:electric_inspection_log/widgets/transmission_voltage_quad_widget_low.dart';
@@ -154,10 +155,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
     super.initState();
 
     final now = DateTime.now();
-    const weekdays = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
-    weekdayLabel = weekdays[now.weekday - 1];
-    formattedDate = '$weekdayLabel ${now.month}월 ${now.day}일, ${now.year}';
-
+    formattedDate = '${now.year}년${now.month}월${now.day}일';
     _loadName();
 
     _data = List.generate(rows, (_) => List.generate(columns, (_) => ''));
@@ -262,7 +260,6 @@ class _ExcelGridState extends State<ExcelGridLow> {
     // _inspectorController.text 에 작성된 값으로 메일 발송 로직 실행
     // print('메일 발송 대상: ${_inspectorController.text}');
     exportPdfAndExcel();
-   
   }
 
   void _onManagerMainSign() {
@@ -393,6 +390,47 @@ class _ExcelGridState extends State<ExcelGridLow> {
     final bytes = Uint8List.fromList(wb.saveSync());
     wb.dispose();
     return bytes;
+  }
+
+  String formatCapacity(String raw) {
+    // 숫자로 변환
+    final v = double.tryParse(raw.replaceAll(',', '').trim());
+    if (v == null) return raw; // 숫자 아님 → 그대로 표시
+    if (v == 0) return '_'; // 0 → 언더바 처리
+
+    // 소수점 있는지 확인
+    final hasDecimal = raw.contains('.') && double.tryParse(raw) != null;
+
+    // 표시값 계산
+    String fixed;
+    if (hasDecimal) {
+      // 소수점 있는 값 → 둘째자리까지
+      fixed = v.toStringAsFixed(2);
+      // 12345.20 같은 경우 뒤에 0 지우기
+      if (fixed.endsWith('0')) fixed = fixed.replaceAll(RegExp(r'0+$'), '');
+      if (fixed.endsWith('.')) fixed = fixed.substring(0, fixed.length - 1);
+    } else {
+      // 정수 값 → 소수점 없이
+      fixed = v.toStringAsFixed(0);
+    }
+
+    // 천단위 콤마 삽입
+    final parts = fixed.split('.');
+    final intPart = parts[0];
+    final decPart = parts.length > 1 ? parts[1] : '';
+
+    final buffer = StringBuffer();
+    for (int i = 0; i < intPart.length; i++) {
+      final idxFromEnd = intPart.length - i;
+      buffer.write(intPart[i]);
+      if (idxFromEnd > 1 && idxFromEnd % 3 == 1) {
+        buffer.write(',');
+      }
+    }
+
+    return decPart.isEmpty
+        ? buffer.toString()
+        : '${buffer.toString()}.$decPart';
   }
 
   String _ts() {
@@ -582,7 +620,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
     return double.tryParse(cleaned) ?? 0.0;
   }
 
-    // 거래처 선택: 모달 바텀시트 (검색 포함, 키보드 안전)
+  // 거래처 선택: 모달 바텀시트 (검색 포함, 키보드 안전)
   Future<BoardItem?> showBoardPickerBottomSheet(
     BuildContext context,
     List<BoardItem> list,
@@ -717,6 +755,133 @@ class _ExcelGridState extends State<ExcelGridLow> {
       },
     );
   }
+    bool _hasValidEmail() =>
+      _selectedEmail.isNotEmpty && _isValidEmail(_selectedEmail);
+
+  Future<void> _confirmAndSend() async {
+    if (_selectedConsumer.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('고객명(상호)을 먼저 선택하세요.')));
+      return;
+    }
+
+    final hasEmail = _hasValidEmail();
+    final emailText = hasEmail ? _selectedEmail : '미등록';
+    final bodyText = hasEmail ? '서버 저장 및 수용자 메일로 발송합니다.' : '서버에만 저장합니다.';
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('전송 확인'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('수용가 등록 메일 : $emailText'),
+            const SizedBox(height: 8),
+            Text(bodyText),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('확인'),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+
+    if (hasEmail) {
+      await exportPdfAndExcel(); // 기존: 서버 저장 + 메일 발송
+    } else {
+      await exportPdfAndExcelServerOnly(); // 신규: 서버 저장만
+    }
+  }
+
+  Future<void> exportPdfAndExcelServerOnly() async {
+    // 진행중 다이얼로그
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Dialog(
+        insetPadding: EdgeInsets.symmetric(horizontal: 48),
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('업로드 중입니다...'),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    try {
+      // 1) PDF 생성
+      final pdfFile = await PdfExporter.exportFromBoundary(_exportKey);
+
+      // 2) 엑셀 생성
+      final excelBytes = await _buildExcelBytes();
+      final excelFileName = '고압일지_${_selectedConsumer}_${_ts()}.xlsx';
+
+      // 3) 서버 업로드 (메일은 빈 문자열로)
+      await uploadPdfAndExcelRegister(
+        pdfFile: pdfFile,
+        excelBytes: excelBytes,
+        excelFileName: excelFileName,
+        regId: reg_id,
+        email: '', // ← 메일 미전송
+        contents: hvLogEntry.inspectionResultNumeric,
+      );
+
+      // 진행중 닫기
+      Navigator.of(context, rootNavigator: true).pop();
+
+      // 완료 팝업
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('완료'),
+          content: const Text('서버 저장이 완료되었습니다.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      // 진행중 닫기
+      Navigator.of(context, rootNavigator: true).pop();
+
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('오류'),
+          content: Text('업로드 실패: $e'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('닫기'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  String sRatio = '0';
 
   Future<void> _onTapSelectConsumer() async {
     // 1) 거래처 리스트 가져오기
@@ -756,6 +921,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
       generationSecondaryVoltage = board?.generationSecondaryVoltage ?? '-';
       solarCapacity = board?.solarCapacity ?? '-';
       solarVoltage = board?.solarVoltage ?? '-';
+      sRatio = board?.ratio ?? '0';
 
       final sum =
           _parseCapacity(incomingCapacity) +
@@ -791,6 +957,12 @@ class _ExcelGridState extends State<ExcelGridLow> {
         _managerSubController.clear();
       });
     }
+
+    hvLogEntry.powerRatio = double.tryParse(sRatio) ?? 0;
+
+    if (mounted) {
+      await _onTapWeather();
+    }
   }
 
   SimpleHvLogEntry _freshEntryFor(String boardId) {
@@ -811,1625 +983,1760 @@ class _ExcelGridState extends State<ExcelGridLow> {
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
-      key: _exportKey,
-      child: Column(
-        children: [
-          // ──────────────────────────
-          // 1) 첫 6행 (인덱스 0~5): 병합 셀 레이아웃
-          // ──────────────────────────
-          Expanded(
-            flex: 6,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final cellW = constraints.maxWidth / columns;
-                final cellH = constraints.maxHeight / 6;
-
-                return Stack(
-                  children: [
-                    // 1-1) 기본 6×28 그리드 그리기
-                    Column(
-                      children: List.generate(6, (r) {
-                        return SizedBox(
-                          height: cellH,
-                          child: Row(
-                            children: List.generate(columns, (c) {
-                              return Container(
-                                width: cellW,
-                                height: cellH,
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: borderColor,
-                                    width: 0.5,
-                                  ),
-                                ),
-                              );
-                            }),
-                          ),
-                        );
-                      }),
-                    ),
-
-                    // 1-2) C3~R4 (인덱스 row 2~3, col 2~17) 병합
-                    Positioned(
-                      left: 2 * cellW,
-                      top: 1 * cellH,
-                      width: 16 * cellW,
-                      height: 3 * cellH,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 25.0,
-                          vertical: 2.0,
-                        ),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(
-                            color: Colors.grey.shade300,
-                            width: 0.5,
-                          ),
-                        ),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            '전기설비 점검결과 통지서(저압용)',
-                            style: TextStyle(
-                              fontSize: 50, // 크게 잡아두면…
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // 1-3) T2~T4 (인덱스 row 1~3, col 19) 병합
-                    Positioned(
-                      left: 21 * cellW,
-                      top: 1 * cellH,
-                      width: cellW,
-                      height: 3 * cellH,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 2.0,
-                          vertical: 2.0,
-                        ),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(
-                            color: Colors.grey.shade300,
-                            width: 0.5,
-                          ),
-                        ),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            '결\n재',
-                            style: TextStyle(
-                              fontSize: 18, // 크게 잡아두면…
-                              fontWeight: FontWeight.normal,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // 3) U2~W2 (row1, col20~22) – 담당
-                    Positioned(
-                      left: 22 * cellW,
-                      top: 1 * cellH,
-                      width: 3 * cellW,
-                      height: cellH,
-                      child: Container(
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(
-                            color: Colors.grey.shade300,
-                            width: 0.5,
-                          ),
-                        ),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            '담당',
-                            style: TextStyle(
-                              fontSize: 20, // 크게 잡아두면…
-                              fontWeight: FontWeight.normal,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // 4) U3~W4 (row2~3, col20~22) – 빈칸 덮기
-                    Positioned(
-                      left: 22 * cellW,
-                      top: 2 * cellH,
-                      width: 3 * cellW,
-                      height: 2 * cellH,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(
-                            color: Colors.grey.shade300,
-                            width: 0.5,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // 5) X2~Z2 (row1, col23~25) – 팀장
-                    Positioned(
-                      left: 25 * cellW,
-                      top: 1 * cellH,
-                      width: 3 * cellW,
-                      height: cellH,
-                      child: Container(
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(
-                            color: Colors.grey.shade300,
-                            width: 0.5,
-                          ),
-                        ),
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            '팀장',
-                            style: TextStyle(
-                              fontSize: 20, // 크게 잡아두면…
-                              fontWeight: FontWeight.normal,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // 6) X3~Z4 (row2~3, col23~25) – 빈칸 덮기
-                    // X3~Z4 (row2~3, col23~25) – 빈칸 덮기
-                    Positioned(
-                      left: 25 * cellW,
-                      top: 2 * cellH,
-                      width: 3 * cellW,
-                      height: 2 * cellH,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(
-                            color: Colors.grey.shade300,
-                            width: 0.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // (필요 시 더 빈 병합 영역을 추가하세요)
-                  ],
-                );
-              },
-            ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('저압 점검일지 등록'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.send),
+            tooltip: '전송하기',
+            onPressed: _confirmAndSend, // 제가 만들어드린 함수 연결
           ),
-
-          Expanded(
-            flex: 2,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final cellW = constraints.maxWidth / columns;
-                final cellH = constraints.maxHeight;
-                final border = Border.all(color: borderColor, width: 0.5);
-                final baseFont = cellH * 0.55;
-
-                return Stack(
-                  children: [
-                    // 기본 28셀 그리드
-                    Row(
-                      children: List.generate(columns, (_) {
-                        return Container(
-                          width: cellW,
-                          height: cellH,
-                          decoration: BoxDecoration(border: border),
-                        );
-                      }),
-                    ),
-
-                    // A~B : 고객명(상호) 병합
-                    Positioned(
-                      left: 0,
-                      top: 0,
-                      width: 3 * cellW,
-                      height: cellH,
-                      child: GestureDetector(
-                        onTap: _onTapSelectConsumer,
-                        child: Container(
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            '고객명(상호)',
-                            style: TextStyle(
-                              fontSize: baseFont / 2.2,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // C~L : 클릭 시 API 통신 영역 (TODO)
-                    Positioned(
-                      left: 3 * cellW,
-                      top: 0,
-                      width: 9 * cellW,
-                      height: cellH,
-                      child: Container(
-                        alignment: Alignment.centerLeft,
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: border,
-                        ),
-
-                        child: Text(
-                          _selectedConsumer,
-                          style: TextStyle(fontSize: baseFont / 2),
-                        ),
-                      ),
-                    ),
-
-                    // M~N : 귀중 병합
-                    Positioned(
-                      left: 12 * cellW,
-                      top: 0,
-                      width: 2 * cellW,
-                      height: cellH,
-                      child: Container(
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: border,
-                        ),
-
-                        child: Text(
-                          '귀중',
-                          style: TextStyle(fontSize: baseFont / 2),
-                        ),
-                      ),
-                    ),
-
-                    // P~T : 요일, 월, 년 병합
-                    Positioned(
-                      left: 14 * cellW,
-                      top: 0,
-                      width: 7 * cellW,
-                      height: cellH,
-                      child: Container(
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: border,
-                        ),
-
-                        child: Text(
-                          formattedDate,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: baseFont / 2),
-                        ),
-                      ),
-                    ),
-
-                    // U~V : 일기 텍스트 병합
-                    Positioned(
-                      left: 21 * cellW,
-                      top: 0,
-                      width: 2 * cellW,
-                      height: cellH,
-                      child: Container(
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: border,
-                        ),
-
-                        child: Text(
-                          '일기',
-                          style: TextStyle(fontSize: baseFont / 2),
-                        ),
-                      ),
-                    ),
-
-                    // X~AB : 실제 날씨 병합
-                    Positioned(
-                      left: 23 * cellW,
-                      top: 0,
-                      width: 5 * cellW,
-                      height: cellH,
-                      child: GestureDetector(
-                        onTap: _onTapWeather,
-                        child: Container(
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            _selectedWeather.isEmpty ? '선택' : _selectedWeather,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: baseFont / 2),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-
-          // 9~10행 (두 행을 합친 영역)
-          Expanded(
-            flex: 2,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final totalW = constraints.maxWidth;
-                final totalH = constraints.maxHeight;
-                final cellW = totalW / 28; // 전체 열 기준
-                final rowH = totalH / 2; // 두 행이니 각 행 높이
-                final border = Border.all(
-                  color: Colors.grey.shade300,
-                  width: 0.5,
-                );
-                final baseFont = rowH * 0.6;
-
-                return Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: Colors.black,
-                      width: 1,
-                    ), // 전체 검은 테두리
-                  ),
-                  child: Stack(
-                    children: [
-                      // 배경 그리드: 2행 × 28열 (필요한 경우, 아니면 생략하고 병합셀만 보여줘도 됨)
-                      Column(
-                        children: [
-                          Row(
-                            children: List.generate(28, (_) {
-                              return Container(
-                                width: cellW,
-                                height: rowH,
-                                decoration: BoxDecoration(border: border),
-                              );
-                            }),
-                          ),
-                          Row(
-                            children: List.generate(28, (_) {
-                              return Container(
-                                width: cellW,
-                                height: rowH,
-                                decoration: BoxDecoration(border: border),
-                              );
-                            }),
-                          ),
-                        ],
-                      ),
-
-                      // A~B: 계약 용량 (두 행 병합)
-                      Positioned(
-                        left: 0,
-                        top: 0,
-                        width: 2 * cellW,
-                        height: 2 * rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            '계약\n용량',
-                            style: TextStyle(
-                              fontSize: baseFont,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // 9행 C~E: 수전 (top row)
-                      Positioned(
-                        left: 2 * cellW,
-                        top: 0,
-                        width: 3 * cellW,
-                        height: rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            '수전',
-                            style: TextStyle(fontSize: baseFont),
-                          ),
-                        ),
-                      ),
-
-                      // 10행 C~E: 발전 (bottom row)
-                      Positioned(
-                        left: 2 * cellW,
-                        top: rowH,
-                        width: 3 * cellW,
-                        height: rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            '발전',
-                            style: TextStyle(fontSize: baseFont),
-                          ),
-                        ),
-                      ),
-
-                      // 9행 F~G: incoming_capacity
-                      Positioned(
-                        left: 5 * cellW,
-                        top: 0,
-                        width: 2 * cellW,
-                        height: rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            incomingCapacity,
-                            style: TextStyle(fontSize: baseFont),
-                          ),
-                        ),
-                      ),
-
-                      // 10행 F~G: generation_capacity
-                      Positioned(
-                        left: 5 * cellW,
-                        top: rowH,
-                        width: 2 * cellW,
-                        height: rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            generationCapacity,
-                            style: TextStyle(fontSize: baseFont),
-                          ),
-                        ),
-                      ),
-
-                      // 9행 H: KW
-                      Positioned(
-                        left: 7 * cellW,
-                        top: 0,
-                        width: cellW,
-                        height: rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            'KW',
-                            style: TextStyle(fontSize: baseFont * 0.8),
-                          ),
-                        ),
-                      ),
-
-                      // 10행 H: KW
-                      Positioned(
-                        left: 7 * cellW,
-                        top: rowH,
-                        width: cellW,
-                        height: rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            'KW',
-                            style: TextStyle(fontSize: baseFont * 0.8),
-                          ),
-                        ),
-                      ),
-
-                      // 9행 I~J: incoming_primary_voltage
-                      Positioned(
-                        left: 8 * cellW,
-                        top: 0,
-                        width: 2 * cellW,
-                        height: rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            incomingPrimaryVoltage,
-                            style: TextStyle(fontSize: baseFont),
-                          ),
-                        ),
-                      ),
-
-                      // 10행 I~J: generation_primary_voltage
-                      Positioned(
-                        left: 8 * cellW,
-                        top: rowH,
-                        width: 2 * cellW,
-                        height: rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            generationPrimaryVoltage,
-                            style: TextStyle(fontSize: baseFont),
-                          ),
-                        ),
-                      ),
-
-                      // 9행 K: /
-                      Positioned(
-                        left: 10 * cellW,
-                        top: 0,
-                        width: cellW,
-                        height: rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            '/',
-                            style: TextStyle(fontSize: baseFont),
-                          ),
-                        ),
-                      ),
-
-                      // 10행 K: /
-                      Positioned(
-                        left: 10 * cellW,
-                        top: rowH,
-                        width: cellW,
-                        height: rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            '/',
-                            style: TextStyle(fontSize: baseFont),
-                          ),
-                        ),
-                      ),
-
-                      // 9행 L~M: incoming_secondary_voltage
-                      Positioned(
-                        left: 11 * cellW,
-                        top: 0,
-                        width: 2 * cellW,
-                        height: rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            incomingSecondaryVoltage,
-                            style: TextStyle(fontSize: baseFont),
-                          ),
-                        ),
-                      ),
-
-                      // 10행 L~M: generation_secondary_voltage
-                      Positioned(
-                        left: 11 * cellW,
-                        top: rowH,
-                        width: 2 * cellW,
-                        height: rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            generationSecondaryVoltage,
-                            style: TextStyle(fontSize: baseFont),
-                          ),
-                        ),
-                      ),
-
-                      Positioned(
-                        left: 13 * cellW,
-                        top: 0,
-                        width: 1 * cellW,
-                        height: rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              'V',
-                              style: TextStyle(fontSize: baseFont * 0.8),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        left: 13 * cellW,
-                        top: rowH,
-                        width: 1 * cellW,
-                        height: rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            'V',
-                            style: TextStyle(fontSize: baseFont * 0.8),
-                          ),
-                        ),
-                      ),
-
-                      // O~P: 태양광 설비 (두 행 병합)
-                      Positioned(
-                        left: 14 * cellW,
-                        top: 0,
-                        width: 2 * cellW,
-                        height: 2 * rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            '태양광\n설비',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: baseFont,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // 9행 Q~R: solar_capacity
-                      Positioned(
-                        left: 16 * cellW,
-                        top: 0,
-                        width: 3 * cellW,
-                        height: rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            solarCapacity,
-                            style: TextStyle(fontSize: baseFont),
-                          ),
-                        ),
-                      ),
-
-                      // 10행 Q~R: solar_voltage
-                      Positioned(
-                        left: 16 * cellW,
-                        top: rowH,
-                        width: 3 * cellW,
-                        height: rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            solarVoltage,
-                            style: TextStyle(fontSize: baseFont),
-                          ),
-                        ),
-                      ),
-
-                      // 9행 T: KW
-                      Positioned(
-                        left: 19 * cellW,
-                        top: 0,
-                        width: cellW,
-                        height: rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            'KW',
-                            style: TextStyle(fontSize: baseFont * 0.8),
-                          ),
-                        ),
-                      ),
-
-                      // 10행 T: V
-                      Positioned(
-                        left: 19 * cellW,
-                        top: rowH,
-                        width: cellW,
-                        height: rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            'V',
-                            style: TextStyle(fontSize: baseFont * 0.8),
-                          ),
-                        ),
-                      ),
-
-                      // U: 합계 (두 행 병합)
-                      Positioned(
-                        left: 20 * cellW,
-                        top: 0,
-                        width: 2 * cellW,
-                        height: 2 * rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            '합계',
-                            style: TextStyle(
-                              fontSize: baseFont,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // V~Y: 빈칸 (두 행)
-                      Positioned(
-                        left: 22 * cellW,
-                        top: 0,
-                        width: 4 * cellW,
-                        height: 2 * rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            sumText,
-                            style: TextStyle(
-                              fontSize: baseFont,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // Z~AB: KW (두 행)
-                      Positioned(
-                        left: 26 * cellW,
-                        top: 0,
-                        width: 2 * cellW,
-                        height: 2 * rowH,
-                        child: Container(
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-
-                          child: Text(
-                            'KW',
-                            style: TextStyle(fontSize: baseFont * 0.8),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-
-          // 11행 빈칸 (한 행)
-          Expanded(flex: 1, child: const BlankRow()),
-
-          Expanded(
-            flex: 5, // 5행 분량
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final totalW = constraints.maxWidth;
-                final totalH = constraints.maxHeight;
-                final cellW = totalW / 28;
-                final rowH = totalH / 5; // 5개 행
-                final border = Border.all(
-                  color: Colors.grey.shade300,
-                  width: 0.5,
-                );
-                final baseFont = rowH * 0.55;
-
-                final safetyTexts = [
-                  '1. 부적합 설비를 방치하시면 전기재해 및 정전으로 인한 전력손실등의 원인이 될 수 있으니 조속히 개,보수요망.',
-                  '2. 전기설비의 개·보수 시 전기안전관리사 통보, 전문업체 시공, 정전상태 시행, 전기안전관리법령 준수.',
-                  '3. 내용 년수가 경과한 전기설비는 교체 대상입니다.',
-                  '4. 젖은 손으로 전기코드, 차단기 및 전기기계·기구 조작 엄금',
-                  '5. 월 1회 이상 전직원의 전기안전교육을 실시하십시오.',
-                ];
-
-                return Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.black, width: 1),
-                  ),
-                  child: Stack(
-                    children: [
-                      // 배경 5x28 그리드 (선택적, 있어야 셀 구분 느낌)
-                      Column(
-                        children: List.generate(5, (r) {
-                          return SizedBox(
-                            height: rowH,
-                            child: Row(
-                              children: List.generate(28, (c) {
-                                return Container(
-                                  width: cellW,
-                                  height: rowH,
-                                  decoration: BoxDecoration(border: border),
-                                );
-                              }),
-                            ),
-                          );
-                        }),
-                      ),
-
-                      // 왼쪽 세로 병합된 '안전교육' (5행 높이, 2열 너비)
-                      Positioned(
-                        left: 0,
-                        top: 0,
-                        width: 2 * cellW,
-                        height: 5 * rowH,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: border,
-                          ),
-                          child: Center(
-                            child: Text(
-                              '안\n전\n교\n육',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: baseFont * 1.2,
-                                fontWeight: FontWeight.bold,
-                                height: 1.4, // 줄간격을 1.4배로 늘림
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // 오른쪽 항목들 (각 행마다 A~AB에서 왼쪽 2열 뺀 나머지 전체)
-                      for (int i = 0; i < safetyTexts.length; i++)
+        ],
+      ),
+      body: RepaintBoundary(
+        key: _exportKey,
+        child: Container(
+          padding: const EdgeInsets.all(16.0), // ← 여백을 RepaintBoundary 내부에 포함
+          color: Colors.white, // 캡처시 배경색 유지 (투명 방지)
+          child: Column(
+            children: [
+              // ──────────────────────────
+              // 1) 첫 6행 (인덱스 0~5): 병합 셀 레이아웃
+              // ──────────────────────────
+              Expanded(
+                flex: 6,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final cellW = constraints.maxWidth / columns;
+                    final cellH = constraints.maxHeight / 6;
+
+                    return Stack(
+                      children: [
+                        // 1-2) C3~R4 (인덱스 row 2~3, col 2~17) 병합
                         Positioned(
                           left: 2 * cellW,
-                          top: i * rowH,
-                          width: (28 - 2) * cellW,
-                          height: rowH,
+                          top: 1 * cellH,
+                          width: 16 * cellW,
+                          height: 3 * cellH,
                           child: Container(
-                            alignment: Alignment.centerLeft,
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 25.0,
+                              vertical: 2.0,
+                            ),
+                            alignment: Alignment.center,
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              border: border,
+                              border: Border.all(
+                                color: Colors.grey.shade300,
+                                width: 0.5,
+                              ),
                             ),
                             child: FittedBox(
                               fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
                               child: Text(
-                                safetyTexts[i],
-                                style: TextStyle(fontSize: baseFont),
+                                '전기설비 점검결과 통지서(저압용)',
+                                style: TextStyle(
+                                  fontSize: 50, // 크게 잡아두면…
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
 
-          // 17행 빈칸 (한 행)
-          Expanded(flex: 1, child: const BlankRow()),
-
-          // 18행: 점검내역 (판정 : 양, 부)
-          Expanded(
-            flex: 1,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final totalW = constraints.maxWidth;
-                final rowH = constraints.maxHeight;
-                final cellW = totalW / 28;
-
-                final baseFont = rowH * 0.55;
-
-                return Stack(
-                  children: [
-                    // 배경 1×28 그리드 (셀 구분 느낌)
-                    Row(
-                      children: List.generate(28, (_) {
-                        return Container(width: cellW, height: rowH);
-                      }),
-                    ),
-                    // 전체 병합된 텍스트 영역
-                    Positioned(
-                      left: 0,
-                      top: 0,
-                      width: 28 * cellW,
-                      height: rowH,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        alignment: Alignment.centerLeft,
-                        decoration: BoxDecoration(),
-                        child: RichText(
-                          text: TextSpan(
-                            style: TextStyle(
-                              fontSize: baseFont,
-                              color: Colors.black,
+                        // 1-3) T2~T4 (인덱스 row 1~3, col 19) 병합
+                        Positioned(
+                          left: 21 * cellW,
+                          top: 1 * cellH,
+                          width: cellW,
+                          height: 3 * cellH,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 2.0,
+                              vertical: 2.0,
                             ),
-                            children: const [
-                              TextSpan(
-                                text: '점검내역(판정 : 양, 부)',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(
+                                color: Colors.grey.shade300,
+                                width: 0.5,
                               ),
-                            ],
+                            ),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '결\n재',
+                                style: TextStyle(
+                                  fontSize: 18, // 크게 잡아두면…
+                                  fontWeight: FontWeight.normal,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-          Expanded(
-            // 기존 flex 합계(4+2+1+6)=13 을 그대로 사용
-            flex: 19,
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.black, width: 1),
+
+                        // 3) U2~W2 (row1, col20~22) – 담당
+                        Positioned(
+                          left: 22 * cellW,
+                          top: 1 * cellH,
+                          width: 3 * cellW,
+                          height: cellH,
+                          child: Container(
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(
+                                color: Colors.grey.shade300,
+                                width: 0.5,
+                              ),
+                            ),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '담당',
+                                style: TextStyle(
+                                  fontSize: 20, // 크게 잡아두면…
+                                  fontWeight: FontWeight.normal,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // 4) U3~W4 (row2~3, col20~22) – 빈칸 덮기
+                        Positioned(
+                          left: 22 * cellW,
+                          top: 2 * cellH,
+                          width: 3 * cellW,
+                          height: 2 * cellH,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(
+                                color: Colors.grey.shade300,
+                                width: 0.5,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // 5) X2~Z2 (row1, col23~25) – 팀장
+                        Positioned(
+                          left: 25 * cellW,
+                          top: 1 * cellH,
+                          width: 3 * cellW,
+                          height: cellH,
+                          child: Container(
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(
+                                color: Colors.grey.shade300,
+                                width: 0.5,
+                              ),
+                            ),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '팀장',
+                                style: TextStyle(
+                                  fontSize: 20, // 크게 잡아두면…
+                                  fontWeight: FontWeight.normal,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // 6) X3~Z4 (row2~3, col23~25) – 빈칸 덮기
+                        // X3~Z4 (row2~3, col23~25) – 빈칸 덮기
+                        Positioned(
+                          left: 25 * cellW,
+                          top: 2 * cellH,
+                          width: 3 * cellW,
+                          height: 2 * cellH,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(
+                                color: Colors.grey.shade300,
+                                width: 0.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                        // (필요 시 더 빈 병합 영역을 추가하세요)
+                      ],
+                    );
+                  },
+                ),
               ),
-              child: Column(
-                children: [
-                  Expanded(
-                    flex: 1,
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final totalW = constraints.maxWidth;
-                        final rowH = constraints.maxHeight;
-                        final border = Border.all(
-                          color: Colors.grey.shade300,
-                          width: 0.5,
-                        );
-                        final baseFont = rowH * 0.55;
 
-                        Widget cell(
-                          String text, {
-                          FontWeight weight = FontWeight.normal,
-                        }) {
-                          return Container(
+              Expanded(
+                flex: 2,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final cellW = constraints.maxWidth / columns;
+                    final cellH = constraints.maxHeight;
+                    final border = Border.all(color: borderColor, width: 0.5);
+                    final baseFont = cellH * 0.55;
+
+                    return Stack(
+                      children: [
+                        // 기본 28셀 그리드
+                        Row(
+                          children: List.generate(columns, (_) {
+                            return Container(
+                              width: cellW,
+                              height: cellH,
+                              decoration: BoxDecoration(border: border),
+                            );
+                          }),
+                        ),
+
+                        // A~B : 고객명(상호) 병합
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          width: 3 * cellW,
+                          height: cellH,
+                          child: GestureDetector(
+                            onTap: _onTapSelectConsumer,
+                            child: Container(
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+
+                              child: Text(
+                                '고객명(상호)',
+                                style: TextStyle(
+                                  fontSize: baseFont / 2.2,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // C~L : 클릭 시 API 통신 영역 (TODO)
+                        Positioned(
+                          left: 3 * cellW,
+                          top: 0,
+                          width: 9 * cellW,
+                          height: cellH,
+                          child: GestureDetector(
+                            onTap: _onTapSelectConsumer, // ← 동일 제스처 추가
+                            child: Container(
+                              alignment: Alignment.centerLeft,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+                              child: Text(
+                                _selectedConsumer.isEmpty
+                                    ? '수용가 선택'
+                                    : _selectedConsumer,
+                                style: TextStyle(fontSize: baseFont / 2),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // M~N : 귀중 병합
+                        Positioned(
+                          left: 12 * cellW,
+                          top: 0,
+                          width: 2 * cellW,
+                          height: cellH,
+                          child: Container(
                             alignment: Alignment.center,
                             padding: const EdgeInsets.symmetric(horizontal: 4),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               border: border,
                             ),
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
+
+                            child: Text(
+                              '귀중',
+                              style: TextStyle(fontSize: baseFont / 2),
+                            ),
+                          ),
+                        ),
+
+                        // P~T : 요일, 월, 년 병합
+                        Positioned(
+                          left: 14 * cellW,
+                          top: 0,
+                          width: 7 * cellW,
+                          height: cellH,
+                          child: Container(
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: border,
+                            ),
+
+                            child: Text(
+                              formattedDate,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: baseFont / 2),
+                            ),
+                          ),
+                        ),
+
+                        // U~V : 일기 텍스트 병합
+                        Positioned(
+                          left: 21 * cellW,
+                          top: 0,
+                          width: 2 * cellW,
+                          height: cellH,
+                          child: Container(
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: border,
+                            ),
+
+                            child: Text(
+                              '일기',
+                              style: TextStyle(fontSize: baseFont / 2),
+                            ),
+                          ),
+                        ),
+
+                        // X~AB : 실제 날씨 병합
+                        Positioned(
+                          left: 23 * cellW,
+                          top: 0,
+                          width: 5 * cellW,
+                          height: cellH,
+                          child: GestureDetector(
+                            onTap: _onTapWeather,
+                            child: Container(
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+
                               child: Text(
-                                text,
+                                _selectedWeather.isEmpty
+                                    ? '선택'
+                                    : _selectedWeather,
                                 textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: baseFont,
-                                  fontWeight: weight,
-                                ),
+                                style: TextStyle(fontSize: baseFont / 2),
                               ),
                             ),
-                          );
-                        }
-
-                        return Row(
-                          children: [
-                            // 1st group: 저 압 설 비 / 판정 / 비고 (4:2:3) => total flex 9
-                            Expanded(
-                              flex: 9,
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    flex: 4,
-                                    child: cell(
-                                      '저 압 설 비',
-                                      weight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: cell('판정', weight: FontWeight.bold),
-                                  ),
-                                  Expanded(
-                                    flex: 3,
-                                    child: cell('비고', weight: FontWeight.bold),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // 2nd group: 특고(고압)설비 / 판정 / 비고 (4:2:3)
-                            Expanded(
-                              flex: 9,
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    flex: 4,
-                                    child: cell(
-                                      '특고(고압)설비',
-                                      weight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: cell('판정', weight: FontWeight.bold),
-                                  ),
-                                  Expanded(
-                                    flex: 3,
-                                    child: cell('비고', weight: FontWeight.bold),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // 3rd group: 태 양 광 설 비 / 판정 / 비고 (4:2:4) => total flex 10
-                            Expanded(
-                              flex: 10,
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    flex: 5,
-                                    child: cell(
-                                      '태양광설비', // 세로로 배치하고 싶다면 줄바꿈
-                                      weight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 2,
-                                    child: cell('판정', weight: FontWeight.bold),
-                                  ),
-                                  Expanded(
-                                    flex: 3,
-                                    child: cell('비고', weight: FontWeight.bold),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-
-                  ...List.generate(7, (i) {
-                    return Expanded(
-                      flex: 1,
-                      child: InspectionLineWidget(
-                        left: hvLogEntry.lowVoltageItems[i],
-                        middle: hvLogEntry.highVoltageItems[i],
-                        right: hvLogEntry.solarItems[i],
-                        onChanged:
-                            ({
-                              required left,
-                              required middle,
-                              required right,
-                              required value,
-                            }) {
-                              // 변경 감지: 같은 인스턴스라 기본적으로 반영되어 있음
-                              _onAnyLineChanged(
-                                i,
-                                left: left,
-                                middle: middle,
-                                right: right,
-                                value: 0,
-                              );
-                              // 필요하면 저장 호출
-                              //  _persistLocally();
-                            },
-                      ),
+                          ),
+                        ),
+                      ],
                     );
-                  }),
-
-                  //7_9행 송전전압
-                  Expanded(
-                    flex: 3, // 3줄이므로 flex 비율 적절히 조절
-                    child: TransmissionVoltageTripleWidget(
-                      leftEntries: [
-                        hvLogEntry.lowVoltageItems[7],
-                        hvLogEntry.lowVoltageItems[8],
-                        hvLogEntry.lowVoltageItems[9],
-                      ],
-                      middleEntries: [
-                        hvLogEntry.highVoltageItems[7],
-                        hvLogEntry.highVoltageItems[8],
-                        hvLogEntry.highVoltageItems[9],
-                      ],
-                      rightEntries: [
-                        hvLogEntry.solarItems[7],
-                        hvLogEntry.solarItems[8],
-                        hvLogEntry.solarItems[9],
-                      ],
-                      entry: hvLogEntry,
-                      onLineChanged:
-                          ({
-                            required int index,
-                            required InspectionEntry left,
-                            required InspectionEntry middle,
-                            required InspectionEntry right,
-                            required double value,
-                          }) {
-                            _onAnyLineChanged(
-                              index,
-                              left: left,
-                              middle: middle,
-                              right: right,
-                              value: value,
-                            );
-                          },
-                    ),
-                  ),
-
-                  //10_11행 pv 전압
-                  Expanded(
-                    flex: 2, // 3줄이므로 flex 비율 적절히 조
-                    child: TransmissionVoltageDoubleWidget(
-                      leftEntries: [
-                        hvLogEntry.lowVoltageItems[10],
-                        hvLogEntry.lowVoltageItems[11],
-                      ],
-                      middleEntries: [
-                        hvLogEntry.highVoltageItems[10],
-                        hvLogEntry.highVoltageItems[11],
-                      ],
-                      entry: hvLogEntry,
-                      onLineChanged:
-                          ({
-                            required int index,
-                            required InspectionEntry left,
-                            required InspectionEntry middle,
-
-                            required double value,
-                          }) {
-                            _onAnyLineChanged(
-                              index,
-                              left: left,
-                              middle: middle,
-                              right: hvLogEntry.solarItems[index],
-                              value: value,
-                            );
-                          },
-                    ),
-                  ),
-
-                  //12_15행 현재 발전량, 누적발전량
-                  Expanded(
-                    flex: 4,
-                    child: TransmissionVoltageQuadWidgetLow(
-                      tag : 2,
-                      leftEntries: [
-                        hvLogEntry.lowVoltageItems[12],
-                        hvLogEntry.lowVoltageItems[13],
-                        hvLogEntry.lowVoltageItems[14],
-                        hvLogEntry.lowVoltageItems[15],
-                      ],
-                      middleEntries: [
-                        hvLogEntry.highVoltageItems[12],
-                        hvLogEntry.highVoltageItems[13],
-                        hvLogEntry.highVoltageItems[14],
-                        hvLogEntry.highVoltageItems[15],
-                      ],
-                      entry: hvLogEntry,
-                      onLineChanged:
-                          ({
-                            required int index,
-                            required InspectionEntry left,
-                            required InspectionEntry middle,
-                            double? currentGeneration,
-                            double? cumulativeGeneration,
-                          }) {
-                            final v =
-                                currentGeneration ??
-                                cumulativeGeneration; // 값이 없으면 null
-                            _onAnyLineChanged(
-                              index,
-                              left: left,
-                              middle: middle,
-                              right: hvLogEntry.solarItems[index],
-                              value: v, // <- null 허용으로 전달
-                            );
-                          },
-                    ),
-                  ),
-
-                  Expanded(
-                    flex: 2, // 3줄이므로 flex 비율 적절히 조
-                    child: MeasurementPowerWidget(
-                      entry: hvLogEntry,
-                      onChanged: (field, value) {
-                        debugPrint('[$field] 가 $value 로 변경되었습니다.');
-                        if (field == 'powerRatio') {
-                          // (금일지침계 - 전추지침계) * powerRatio
-                          final diff =
-                              hvLogEntry.guidelineLowCurrent9 -
-                              hvLogEntry.guidelineLowPre5;
-                          final generated = diff * value;
-                          setState(() {
-                            // 여기에 결과를 저장할 필드가 있다면 대입
-                              hvLogEntry.preMonthGenerationKwh = generated;
-                          });
-                        }
-
-                        saveDB();
-                      },
-                    ),
-                  ),
-                ],
+                  },
+                ),
               ),
-            ),
-          ),
 
-          Expanded(flex: 1, child: const BlankRow()),
+              // 9~10행 (두 행을 합친 영역)
+              Expanded(
+                flex: 2,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final totalW = constraints.maxWidth;
+                    final totalH = constraints.maxHeight;
+                    final cellW = totalW / 28; // 전체 열 기준
+                    final rowH = totalH / 2; // 두 행이니 각 행 높이
+                    final border = Border.all(
+                      color: Colors.grey.shade300,
+                      width: 0.5,
+                    );
+                    final baseFont = rowH * 0.6;
 
-          Expanded(
-            flex: 1,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final totalW = constraints.maxWidth;
-                final rowH = constraints.maxHeight;
-                final cellW = totalW / 28;
-
-                final baseFont = rowH * 0.55;
-
-                return Stack(
-                  children: [
-                    // 배경 1×28 그리드 (셀 구분 느낌)
-                    Row(
-                      children: List.generate(28, (_) {
-                        return Container(width: cellW, height: rowH);
-                      }),
-                    ),
-                    // 전체 병합된 텍스트 영역
-                    Positioned(
-                      left: 0,
-                      top: 0,
-                      width: 28 * cellW,
-                      height: rowH,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        alignment: Alignment.centerLeft,
-                        decoration: BoxDecoration(),
-                        child: RichText(
-                          text: TextSpan(
-                            style: TextStyle(
-                              fontSize: baseFont,
-                              color: Colors.black,
-                            ),
-                            children: const [
-                              TextSpan(
-                                text: '점검결과 및 보안, 안전사항',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                    return Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Colors.black,
+                          width: 1,
+                        ), // 전체 검은 테두리
+                      ),
+                      child: Stack(
+                        children: [
+                          // 배경 그리드: 2행 × 28열 (필요한 경우, 아니면 생략하고 병합셀만 보여줘도 됨)
+                          Column(
+                            children: [
+                              Row(
+                                children: List.generate(28, (_) {
+                                  return Container(
+                                    width: cellW,
+                                    height: rowH,
+                                    decoration: BoxDecoration(border: border),
+                                  );
+                                }),
+                              ),
+                              Row(
+                                children: List.generate(28, (_) {
+                                  return Container(
+                                    width: cellW,
+                                    height: rowH,
+                                    decoration: BoxDecoration(border: border),
+                                  );
+                                }),
                               ),
                             ],
                           ),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
 
-          // 3행: 점검 결과 및 보완 사항 입력 (키패드 or 터치)
-          // 3행: 점검 결과 및 보완 사항 입력 (2단위)
-          Expanded(
-            flex: 4,
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.black, width: 1),
-                color: Colors.white, // 배경을 흰색으로
+                          // A~B: 계약 용량 (두 행 병합)
+                          Positioned(
+                            left: 0,
+                            top: 0,
+                            width: 2 * cellW,
+                            height: 2 * rowH,
+                            child: Container(
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+
+                              child: Text(
+                                '계약\n용량',
+                                style: TextStyle(
+                                  fontSize: baseFont,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // 9행 C~E: 수전 (top row)
+                          Positioned(
+                            left: 2 * cellW,
+                            top: 0,
+                            width: 3 * cellW,
+                            height: rowH,
+                            child: Container(
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+
+                              child: Text(
+                                '수전',
+                                style: TextStyle(fontSize: baseFont),
+                              ),
+                            ),
+                          ),
+
+                          // 10행 C~E: 발전 (bottom row)
+                          Positioned(
+                            left: 2 * cellW,
+                            top: rowH,
+                            width: 3 * cellW,
+                            height: rowH,
+                            child: Container(
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+
+                              child: Text(
+                                '발전',
+                                style: TextStyle(fontSize: baseFont),
+                              ),
+                            ),
+                          ),
+
+                          // 9행 F~G: incoming_capacity
+                          Positioned(
+                            left: 5 * cellW,
+                            top: 0,
+                            width: 2 * cellW,
+                            height: rowH,
+                            child: Container(
+                              alignment: Alignment.centerRight, // 오른쪽 맞춤
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+                              child: Text(
+                                formatCapacity(incomingCapacity), // 포맷 적용
+                                textAlign: TextAlign.right,
+                                style: TextStyle(fontSize: baseFont),
+                              ),
+                            ),
+                          ),
+
+                          // 10행 F~G: generation_capacity
+                          Positioned(
+                            left: 5 * cellW,
+                            top: rowH,
+                            width: 2 * cellW,
+                            height: rowH,
+                            child: Container(
+                              alignment: Alignment.centerRight, // 오른쪽 맞춤
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+                              child: Text(
+                                formatCapacity(generationCapacity), // 포맷 적용
+                                textAlign: TextAlign.right,
+                                style: TextStyle(fontSize: baseFont),
+                              ),
+                            ),
+                          ),
+
+                          // 9행 H: KW
+                          Positioned(
+                            left: 7 * cellW,
+                            top: 0,
+                            width: cellW,
+                            height: rowH,
+                            child: Container(
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+
+                              child: Text(
+                                'KW',
+                                style: TextStyle(fontSize: baseFont * 0.8),
+                              ),
+                            ),
+                          ),
+
+                          // 10행 H: KW
+                          Positioned(
+                            left: 7 * cellW,
+                            top: rowH,
+                            width: cellW,
+                            height: rowH,
+                            child: Container(
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+
+                              child: Text(
+                                'KW',
+                                style: TextStyle(fontSize: baseFont * 0.8),
+                              ),
+                            ),
+                          ),
+
+                          // 9행 I~J: incoming_primary_voltage
+                          Positioned(
+                            left: 8 * cellW,
+                            top: 0,
+                            width: 2 * cellW,
+                            height: rowH,
+                            child: Container(
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+
+                              child: Text(
+                                incomingPrimaryVoltage,
+                                style: TextStyle(fontSize: baseFont),
+                              ),
+                            ),
+                          ),
+
+                          // 10행 I~J: generation_primary_voltage
+                          Positioned(
+                            left: 8 * cellW,
+                            top: rowH,
+                            width: 2 * cellW,
+                            height: rowH,
+                            child: Container(
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+
+                              child: Text(
+                                generationPrimaryVoltage,
+                                style: TextStyle(fontSize: baseFont),
+                              ),
+                            ),
+                          ),
+
+                          // 9행 K: /
+                          Positioned(
+                            left: 10 * cellW,
+                            top: 0,
+                            width: cellW,
+                            height: rowH,
+                            child: Container(
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+
+                              child: Text(
+                                '/',
+                                style: TextStyle(fontSize: baseFont),
+                              ),
+                            ),
+                          ),
+
+                          // 10행 K: /
+                          Positioned(
+                            left: 10 * cellW,
+                            top: rowH,
+                            width: cellW,
+                            height: rowH,
+                            child: Container(
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+
+                              child: Text(
+                                '/',
+                                style: TextStyle(fontSize: baseFont),
+                              ),
+                            ),
+                          ),
+
+                          // 9행 L~M: incoming_secondary_voltage
+                          Positioned(
+                            left: 11 * cellW,
+                            top: 0,
+                            width: 2 * cellW,
+                            height: rowH,
+                            child: Container(
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+
+                              child: Text(
+                                incomingSecondaryVoltage,
+                                style: TextStyle(fontSize: baseFont),
+                              ),
+                            ),
+                          ),
+
+                          // 10행 L~M: generation_secondary_voltage
+                          Positioned(
+                            left: 11 * cellW,
+                            top: rowH,
+                            width: 2 * cellW,
+                            height: rowH,
+                            child: Container(
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+
+                              child: Text(
+                                generationSecondaryVoltage,
+                                style: TextStyle(fontSize: baseFont),
+                              ),
+                            ),
+                          ),
+
+                          Positioned(
+                            left: 13 * cellW,
+                            top: 0,
+                            width: 1 * cellW,
+                            height: rowH,
+                            child: Container(
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  'V',
+                                  style: TextStyle(fontSize: baseFont * 0.8),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: 13 * cellW,
+                            top: rowH,
+                            width: 1 * cellW,
+                            height: rowH,
+                            child: Container(
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+
+                              child: Text(
+                                'V',
+                                style: TextStyle(fontSize: baseFont * 0.8),
+                              ),
+                            ),
+                          ),
+
+                          // O~P: 태양광 설비 (두 행 병합)
+                          Positioned(
+                            left: 14 * cellW,
+                            top: 0,
+                            width: 2 * cellW,
+                            height: 2 * rowH,
+                            child: Container(
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+
+                              child: Text(
+                                '태양광\n설비',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: baseFont,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // 9행 Q~R: solar_capacity
+                          Positioned(
+                            left: 16 * cellW,
+                            top: 0,
+                            width: 3 * cellW,
+                            height: rowH,
+                            child: Container(
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+
+                              child: Text(
+                                solarCapacity,
+                                style: TextStyle(fontSize: baseFont),
+                              ),
+                            ),
+                          ),
+
+                          // 10행 Q~R: solar_voltage
+                          Positioned(
+                            left: 16 * cellW,
+                            top: 0,
+                            width: 3 * cellW,
+                            height: rowH,
+                            child: Container(
+                              alignment: Alignment.centerRight, // ← 오른쪽 맞춤
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+                              child: Text(
+                                formatCapacity(
+                                  solarCapacity,
+                                ), // ← 포맷 적용 (천단위/소수/0→'_')
+                                textAlign: TextAlign.right,
+                                style: TextStyle(fontSize: baseFont),
+                              ),
+                            ),
+                          ),
+
+                          // 9행 T: KW
+                          Positioned(
+                            left: 19 * cellW,
+                            top: 0,
+                            width: cellW,
+                            height: rowH,
+                            child: Container(
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+
+                              child: Text(
+                                'KW',
+                                style: TextStyle(fontSize: baseFont * 0.8),
+                              ),
+                            ),
+                          ),
+
+                          // 10행 T: V
+                          Positioned(
+                            left: 19 * cellW,
+                            top: rowH,
+                            width: cellW,
+                            height: rowH,
+                            child: Container(
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+
+                              child: Text(
+                                'V',
+                                style: TextStyle(fontSize: baseFont * 0.8),
+                              ),
+                            ),
+                          ),
+
+                          // U: 합계 (두 행 병합)
+                          Positioned(
+                            left: 20 * cellW,
+                            top: 0,
+                            width: 2 * cellW,
+                            height: 2 * rowH,
+                            child: Container(
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+
+                              child: Text(
+                                '합계',
+                                style: TextStyle(
+                                  fontSize: baseFont,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // V~Y: 빈칸 (두 행)
+                          Positioned(
+                            left: 22 * cellW,
+                            top: 0,
+                            width: 4 * cellW,
+                            height: 2 * rowH,
+                            child: Container(
+                              alignment: Alignment.centerRight, // ← 오른쪽 맞춤
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+                              child: Text(
+                                formatCapacity(
+                                  sumText,
+                                ), // ← 포맷 적용 (천단위 / 소수점 둘째자리 / 0→'_')
+                                textAlign: TextAlign.right,
+                                style: TextStyle(
+                                  fontSize: baseFont,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Z~AB: KW (두 행)
+                          Positioned(
+                            left: 26 * cellW,
+                            top: 0,
+                            width: 2 * cellW,
+                            height: 2 * rowH,
+                            child: Container(
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+
+                              child: Text(
+                                'KW',
+                                style: TextStyle(fontSize: baseFont * 0.8),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ),
 
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  // 셀 높이 가져오기
-                  final rowH = constraints.maxHeight;
-                  // 폰트 크기의 기준으로 사용할 값 계산
-                  final baseFont = rowH * 0.55 / 3;
+              // 11행 빈칸 (한 행)
+              Expanded(flex: 1, child: const BlankRow()),
 
-                  return GestureDetector(
-                    onTap: () async {
-                      // 1-1) 선택 다이얼로그: String 반환
-                      final method = await showDialog<String>(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: Text('입력 방식 선택'),
-                          content: Text('키보드, 터치, 템플릿 중 하나를 선택하세요.'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, 'keyboard'),
-                              child: Text('키보드 입력'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, 'touch'),
-                              child: Text('터치 입력'),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(ctx, 'template'),
-                              child: Text('템플릿 입력'),
-                            ),
-                          ],
-                        ),
-                      );
+              Expanded(
+                flex: 5, // 5행 분량
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final totalW = constraints.maxWidth;
+                    final totalH = constraints.maxHeight;
+                    final cellW = totalW / 28;
+                    final rowH = totalH / 5; // 5개 행
+                    final border = Border.all(
+                      color: Colors.grey.shade300,
+                      width: 0.5,
+                    );
+                    final baseFont = rowH * 0.55;
 
-                      // 2) 반환된 method 값에 따라 분기
-                      if (method == 'keyboard') {
-                        // 시스템 키보드 다이얼로그
-                        final result = await showDialog<String>(
-                          context: context,
-                          builder: (ctx) {
-                            String input = hvLogEntry.inspectionResultNumeric;
-                            return AlertDialog(
-                              title: Text('점검 결과 입력'),
-                              content: TextField(
-                                autofocus: true,
-                                keyboardType:
-                                    TextInputType.multiline, // 멀티라인용 키보드
-                                maxLines: 5, // 최대 5줄
-                                decoration: InputDecoration(
-                                  hintText: '여기에 내용을 입력하세요',
-                                  border: OutlineInputBorder(),
+                    final safetyTexts = [
+                      '1. 부적합 설비를 방치하시면 전기재해 및 정전으로 인한 전력손실등의 원인이 될 수 있으니 조속히 개,보수요망.',
+                      '2. 전기설비의 개·보수 시 전기안전관리사 통보, 전문업체 시공, 정전상태 시행, 전기안전관리법령 준수.',
+                      '3. 내용 년수가 경과한 전기설비는 교체 대상입니다.',
+                      '4. 젖은 손으로 전기코드, 차단기 및 전기기계·기구 조작 엄금',
+                      '5. 월 1회 이상 전직원의 전기안전교육을 실시하십시오.',
+                    ];
+
+                    return Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.black, width: 1),
+                      ),
+                      child: Stack(
+                        children: [
+                          // 배경 5x28 그리드 (선택적, 있어야 셀 구분 느낌)
+                          Column(
+                            children: List.generate(5, (r) {
+                              return SizedBox(
+                                height: rowH,
+                                child: Row(
+                                  children: List.generate(28, (c) {
+                                    return Container(
+                                      width: cellW,
+                                      height: rowH,
+                                      decoration: BoxDecoration(border: border),
+                                    );
+                                  }),
                                 ),
-                                onChanged: (v) => input = v,
+                              );
+                            }),
+                          ),
+
+                          // 왼쪽 세로 병합된 '안전교육' (5행 높이, 2열 너비)
+                          Positioned(
+                            left: 0,
+                            top: 0,
+                            width: 2 * cellW,
+                            height: 5 * rowH,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
                               ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx),
-                                  child: Text('취소'),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '안\n전\n교\n육',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: baseFont * 1.2,
+                                    fontWeight: FontWeight.bold,
+                                    height: 1.4, // 줄간격을 1.4배로 늘림
+                                  ),
                                 ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, input),
-                                  child: Text('확인'),
+                              ),
+                            ),
+                          ),
+
+                          // 오른쪽 항목들 (각 행마다 A~AB에서 왼쪽 2열 뺀 나머지 전체)
+                          for (int i = 0; i < safetyTexts.length; i++)
+                            Positioned(
+                              left: 2 * cellW,
+                              top: i * rowH,
+                              width: (28 - 2) * cellW,
+                              height: rowH,
+                              child: Container(
+                                alignment: Alignment.centerLeft,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  border: border,
+                                ),
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    safetyTexts[i],
+                                    style: TextStyle(fontSize: baseFont),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // 17행 빈칸 (한 행)
+              Expanded(flex: 1, child: const BlankRow()),
+
+              // 18행: 점검내역 (판정 : 양, 부)
+              Expanded(
+                flex: 1,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final totalW = constraints.maxWidth;
+                    final rowH = constraints.maxHeight;
+                    final cellW = totalW / 28;
+
+                    final baseFont = rowH * 0.55;
+
+                    return Stack(
+                      children: [
+                        // 배경 1×28 그리드 (셀 구분 느낌)
+                        Row(
+                          children: List.generate(28, (_) {
+                            return Container(width: cellW, height: rowH);
+                          }),
+                        ),
+                        // 전체 병합된 텍스트 영역
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          width: 28 * cellW,
+                          height: rowH,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            alignment: Alignment.centerLeft,
+                            decoration: BoxDecoration(),
+                            child: RichText(
+                              text: TextSpan(
+                                style: TextStyle(
+                                  fontSize: baseFont,
+                                  color: Colors.black,
+                                ),
+                                children: const [
+                                  TextSpan(
+                                    text: '점검내역(판정 : 양, 부)',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+              Expanded(
+                // 기존 flex 합계(4+2+1+6)=13 을 그대로 사용
+                flex: 19,
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.black, width: 1),
+                  ),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        flex: 1,
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final totalW = constraints.maxWidth;
+                            final rowH = constraints.maxHeight;
+                            final border = Border.all(
+                              color: Colors.grey.shade300,
+                              width: 0.5,
+                            );
+                            final baseFont = rowH * 0.55;
+
+                            Widget cell(
+                              String text, {
+                              FontWeight weight = FontWeight.normal,
+                            }) {
+                              return Container(
+                                alignment: Alignment.center,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  border: border,
+                                ),
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    text,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: baseFont,
+                                      fontWeight: weight,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+
+                            return Row(
+                              children: [
+                                // 1st group: 저 압 설 비 / 판정 / 비고 (4:2:3) => total flex 9
+                                Expanded(
+                                  flex: 9,
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        flex: 4,
+                                        child: cell(
+                                          '저 압 설 비',
+                                          weight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        flex: 2,
+                                        child: cell(
+                                          '판정',
+                                          weight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        flex: 3,
+                                        child: cell(
+                                          '비고',
+                                          weight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // 2nd group: 특고(고압)설비 / 판정 / 비고 (4:2:3)
+                                Expanded(
+                                  flex: 9,
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        flex: 4,
+                                        child: cell(
+                                          '특고(고압)설비',
+                                          weight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        flex: 2,
+                                        child: cell(
+                                          '판정',
+                                          weight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        flex: 3,
+                                        child: cell(
+                                          '비고',
+                                          weight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // 3rd group: 태 양 광 설 비 / 판정 / 비고 (4:2:4) => total flex 10
+                                Expanded(
+                                  flex: 10,
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        flex: 5,
+                                        child: cell(
+                                          '태양광설비', // 세로로 배치하고 싶다면 줄바꿈
+                                          weight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        flex: 2,
+                                        child: cell(
+                                          '판정',
+                                          weight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        flex: 3,
+                                        child: cell(
+                                          '비고',
+                                          weight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ],
                             );
                           },
-                        );
+                        ),
+                      ),
 
-                        if (result != null) {
-                          setState(() {
-                            hvLogEntry.inspectionResultImage =
-                                null; // ← 이미지 클리어
-                            hvLogEntry.inspectionResultNumeric =
-                                result; // ← 텍스트 저장
-                          });
-                          saveDB();
-                        }
-                      } else if (method == 'touch') {
-                        final pngBytes = await showDialog<Uint8List>(
-                          context: context,
-                          barrierDismissible: false,
-                          builder: (ctx) => Dialog(
-                            // 다이얼로그 크기 조절
-                            child: SizedBox(
-                              width: MediaQuery.of(context).size.width * 0.8,
-                              height: MediaQuery.of(context).size.height * 0.6,
-                              child: DrawingDialogContent(),
+                      ...List.generate(7, (i) {
+                        return Expanded(
+                          flex: 1,
+                          child: InspectionLineWidget(
+                            left: hvLogEntry.lowVoltageItems[i],
+                            middle: hvLogEntry.highVoltageItems[i],
+                            right: hvLogEntry.solarItems[i],
+                            onChanged:
+                                ({
+                                  required left,
+                                  required middle,
+                                  required right,
+                                  required value,
+                                }) {
+                                  // 변경 감지: 같은 인스턴스라 기본적으로 반영되어 있음
+                                  _onAnyLineChanged(
+                                    i,
+                                    left: left,
+                                    middle: middle,
+                                    right: right,
+                                    value: 0,
+                                  );
+                                  // 필요하면 저장 호출
+                                  //  _persistLocally();
+                                },
+                          ),
+                        );
+                      }),
+
+                      //7_9행 송전전압
+                      Expanded(
+                        flex: 3, // 3줄이므로 flex 비율 적절히 조절
+                        child: TransmissionVoltageTripleWidget(
+                          leftEntries: [
+                            hvLogEntry.lowVoltageItems[7],
+                            hvLogEntry.lowVoltageItems[8],
+                            hvLogEntry.lowVoltageItems[9],
+                          ],
+                          middleEntries: [
+                            hvLogEntry.highVoltageItems[7],
+                            hvLogEntry.highVoltageItems[8],
+                            hvLogEntry.highVoltageItems[9],
+                          ],
+                          rightEntries: [
+                            hvLogEntry.solarItems[7],
+                            hvLogEntry.solarItems[8],
+                            hvLogEntry.solarItems[9],
+                          ],
+                          entry: hvLogEntry,
+                          onLineChanged:
+                              ({
+                                required int index,
+                                required InspectionEntry left,
+                                required InspectionEntry middle,
+                                required InspectionEntry right,
+                                required double value,
+                              }) {
+                                _onAnyLineChanged(
+                                  index,
+                                  left: left,
+                                  middle: middle,
+                                  right: right,
+                                  value: value,
+                                );
+                              },
+                        ),
+                      ),
+
+                      //10_11행 pv 전압
+                      Expanded(
+                        flex: 2, // 3줄이므로 flex 비율 적절히 조
+                        child: TransmissionVoltageDoubleWidget(
+                          leftEntries: [
+                            hvLogEntry.lowVoltageItems[10],
+                            hvLogEntry.lowVoltageItems[11],
+                          ],
+                          middleEntries: [
+                            hvLogEntry.highVoltageItems[10],
+                            hvLogEntry.highVoltageItems[11],
+                          ],
+                          entry: hvLogEntry,
+                          onLineChanged:
+                              ({
+                                required int index,
+                                required InspectionEntry left,
+                                required InspectionEntry middle,
+
+                                required double value,
+                              }) {
+                                _onAnyLineChanged(
+                                  index,
+                                  left: left,
+                                  middle: middle,
+                                  right: hvLogEntry.solarItems[index],
+                                  value: value,
+                                );
+                              },
+                        ),
+                      ),
+
+                      //12_15행 현재 발전량, 누적발전량
+                      Expanded(
+                        flex: 4,
+                        child: TransmissionVoltageQuadWidgetLow(
+                          tag: 2,
+                          leftEntries: [
+                            hvLogEntry.lowVoltageItems[12],
+                            hvLogEntry.lowVoltageItems[13],
+                            hvLogEntry.lowVoltageItems[14],
+                            hvLogEntry.lowVoltageItems[15],
+                          ],
+                          middleEntries: [
+                            hvLogEntry.highVoltageItems[12],
+                            hvLogEntry.highVoltageItems[13],
+                            hvLogEntry.highVoltageItems[14],
+                            hvLogEntry.highVoltageItems[15],
+                          ],
+                          entry: hvLogEntry,
+                          onLineChanged:
+                              ({
+                                required int index,
+                                required InspectionEntry left,
+                                required InspectionEntry middle,
+                                double? currentGeneration,
+                                double? cumulativeGeneration,
+                              }) {
+                                final v =
+                                    currentGeneration ??
+                                    cumulativeGeneration; // 값이 없으면 null
+                                _onAnyLineChanged(
+                                  index,
+                                  left: left,
+                                  middle: middle,
+                                  right: hvLogEntry.solarItems[index],
+                                  value: v, // <- null 허용으로 전달
+                                );
+                              },
+                        ),
+                      ),
+
+                      Expanded(
+                        flex: 2, // 3줄이므로 flex 비율 적절히 조
+                        child: MeasurementPowerWidget(
+                          entry: hvLogEntry,
+                          onChanged: (field, value) {
+                            debugPrint('[$field] 가 $value 로 변경되었습니다.');
+                            if (field == 'powerRatio') {
+                              // (금일지침계 - 전추지침계) * powerRatio
+                              final diff =
+                                  hvLogEntry.guidelineLowCurrent9 -
+                                  hvLogEntry.guidelineLowPre5;
+                              final generated = diff * value;
+                              setState(() {
+                                // 여기에 결과를 저장할 필드가 있다면 대입
+                                hvLogEntry.preMonthGenerationKwh = generated;
+                              });
+                            }
+
+                            saveDB();
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              Expanded(flex: 1, child: const BlankRow()),
+
+              Expanded(
+                flex: 1,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final totalW = constraints.maxWidth;
+                    final rowH = constraints.maxHeight;
+                    final cellW = totalW / 28;
+
+                    final baseFont = rowH * 0.55;
+
+                    return Stack(
+                      children: [
+                        // 배경 1×28 그리드 (셀 구분 느낌)
+                        Row(
+                          children: List.generate(28, (_) {
+                            return Container(width: cellW, height: rowH);
+                          }),
+                        ),
+                        // 전체 병합된 텍스트 영역
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          width: 28 * cellW,
+                          height: rowH,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            alignment: Alignment.centerLeft,
+                            decoration: BoxDecoration(),
+                            child: RichText(
+                              text: TextSpan(
+                                style: TextStyle(
+                                  fontSize: baseFont,
+                                  color: Colors.black,
+                                ),
+                                children: const [
+                                  TextSpan(
+                                    text: '점검결과 및 보안, 안전사항',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+
+              // 3행: 점검 결과 및 보완 사항 입력 (키패드 or 터치)
+              // 3행: 점검 결과 및 보완 사항 입력 (2단위)
+              Expanded(
+                flex: 4,
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.black, width: 1),
+                    color: Colors.white,
+                  ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final rowH = constraints.maxHeight;
+                      final baseFont = rowH * 0.55 / 3;
+
+                      // 4줄 분해/병합 헬퍼
+                      List<String> _getLines() {
+                        final raw = hvLogEntry.inspectionResultNumeric;
+                        final lines = (raw.isEmpty
+                            ? <String>[]
+                            : raw.split('\n'));
+                        // 항상 4줄 보장
+                        while (lines.length < 4) lines.add('');
+                        if (lines.length > 4) return lines.sublist(0, 4);
+                        return lines;
+                      }
+
+                      void _setLine(int idx, String value) {
+                        final lines = _getLines();
+                        lines[idx] = value;
+                        setState(() {
+                          hvLogEntry.inspectionResultImage =
+                              null; // 텍스트 입력 시 이미지 제거
+                          hvLogEntry.inspectionResultNumeric = lines.join('\n');
+                        });
+                        saveDB();
+                      }
+
+                      // 템플릿 선택 공통 핸들러
+                      Future<void> _pickTemplate({
+                        required bool solar,
+                        required int idx,
+                      }) async {
+                        // solar=true → 태양광 DB, false → 일반 DB
+                        final selected = await Navigator.push<String>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TemplateListPageTyped(solar: solar),
+                          ),
+                        );
+                        if (selected != null) {
+                          _setLine(idx, selected);
+                        }
+                      }
+
+                      // 한 줄 편집 다이얼로그 (펜/템플릿 선택)
+                      Future<void> _editLine(int idx) async {
+                        final method = await showDialog<String>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('입력 방식 선택'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, 'touch'),
+                                child: const Text('펜으로 쓰기'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, 'template'),
+                                child: const Text('입력견본 선택(일반)'),
+                              ),
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.pop(ctx, 'template1'),
+                                child: const Text('입력견본 선택(태양광)'),
+                              ),
+                            ],
                           ),
                         );
 
-                        if (pngBytes != null) {
-                          setState(() {
-                            hvLogEntry.inspectionResultImage = pngBytes;
-                          });
-                          saveDB();
-                        }
-                      } else if (method == 'template') {
-                        // 2-1) TemplateListPage 로 이동 → 선택된 템플릿 문자열을 받는다
-                        final selected = await Navigator.push<String>(
-                          context,
-                          MaterialPageRoute(builder: (_) => TemplateListPage()),
-                        );
-                        if (selected != null) {
-                          setState(
-                            () => hvLogEntry.inspectionResultNumeric = selected,
+                        if (method == null) return;
+
+                        if (method == 'touch') {
+                          final pngBytes = await showDialog<Uint8List>(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (ctx) => Dialog(
+                              child: SizedBox(
+                                width: MediaQuery.of(context).size.width * 0.8,
+                                height:
+                                    MediaQuery.of(context).size.height * 0.3,
+                                child: DrawingDialogContent(),
+                              ),
+                            ),
                           );
-                          saveDB();
+                          if (pngBytes != null) {
+                            setState(() {
+                              hvLogEntry.inspectionResultImage = pngBytes;
+                            });
+                            saveDB();
+                          }
+                        } else if (method == 'template') {
+                          await _pickTemplate(solar: false, idx: idx);
+                        } else if (method == 'template1') {
+                          await _pickTemplate(solar: true, idx: idx);
                         }
                       }
-                    },
-                    child: Container(
-                      alignment: Alignment.topLeft,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: hvLogEntry.inspectionResultImage != null
-                          // 이미지가 있으면 드로잉 결과를 보여준다
-                          ? Image.memory(
-                              hvLogEntry.inspectionResultImage!,
-                              fit: BoxFit.fill,
-                            )
-                          // 이미지가 없으면 기존 텍스트(또는 숫자) 표시
-                          : Text(
-                              hvLogEntry.inspectionResultNumeric.isEmpty
-                                  ? '점검 결과 및 보완 사항을 입력하세요(이곳을 터치하세요)'
-                                  : hvLogEntry.inspectionResultNumeric,
-                              style: TextStyle(fontSize: baseFont * 0.7),
+
+                      final lines = _getLines();
+
+                      return Stack(
+                        children: [
+                          // 배경: 이미지가 있으면 이미지, 아니면 4줄 텍스트
+                          Positioned.fill(
+                            child: hvLogEntry.inspectionResultImage != null
+                                ? Image.memory(
+                                    hvLogEntry.inspectionResultImage!,
+                                    fit: BoxFit.fill,
+                                  )
+                                : Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: List.generate(4, (i) {
+                                        final text = lines[i].isEmpty
+                                            ? ' ${i + 1} 입력'
+                                            : '${i + 1}. ${lines[i]}';
+                                        return Expanded(
+                                          child: Align(
+                                            alignment: Alignment.topLeft,
+                                            child: Text(
+                                              text,
+                                              style: TextStyle(
+                                                fontSize: baseFont * 0.7,
+                                              ),
+                                              maxLines: 4,
+                                              overflow: TextOverflow.visible,
+                                            ),
+                                          ),
+                                        );
+                                      }),
+                                    ),
+                                  ),
+                          ),
+                          // 투명 오버레이: 4줄 각각 터치 영역
+                          Positioned.fill(
+                            child: Column(
+                              children: List.generate(4, (i) {
+                                return Expanded(
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () => _editLine(i),
+                                    onLongPress: () async {
+                                      // 길게 누르면 해당 라인 직접 키보드 입력도 제공 (선택사항)
+                                      String input = lines[i];
+                                      final result = await showDialog<String>(
+                                        context: context,
+                                        builder: (ctx) => AlertDialog(
+                                          title: Text('${i + 1}  입력'),
+                                          content: TextField(
+                                            autofocus: true,
+                                            keyboardType:
+                                                TextInputType.multiline,
+                                            maxLines: 4,
+                                            decoration: const InputDecoration(
+                                              hintText: '내용을 입력하세요',
+                                              border: OutlineInputBorder(),
+                                            ),
+                                            controller: TextEditingController(
+                                              text: input,
+                                            ),
+                                            onChanged: (v) => input = v,
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(ctx),
+                                              child: const Text('취소'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(ctx, input),
+                                              child: const Text('확인'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                      if (result != null) _setLine(i, result);
+                                    },
+                                    child: Container(
+                                      // 시각적 가이드(선택): 줄 구분선
+                                      decoration: const BoxDecoration(
+                                        border: Border(
+                                          bottom: BorderSide(
+                                            color: Colors.black12,
+                                            width: 0.5,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }),
                             ),
-                    ),
-                  );
-                },
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
               ),
-            ),
+
+              Expanded(
+                flex: 1,
+                child: GuidelineInputWidgetLow(
+                  entry: hvLogEntry,
+                  onChanged: (field, value) {
+                    setState(() {
+                      // 1) 들어온 field 이름에 따라 entry 필드 업데이트
+
+                      hvLogEntry.guidelineLowSum =
+                          hvLogEntry.guidelineLowCurrent9 -
+                          hvLogEntry.guidelineLowPre5;
+                      hvLogEntry.preMonthGenerationKwh =
+                          hvLogEntry.guidelineLowSum * hvLogEntry.powerRatio;
+
+                      // 3) (선택) pvVoltage 자동 계산
+                      // final diff =
+                      //     hvLogEntry.guidelineCurrentSum -
+                      //     hvLogEntry.guidelinePrevSum;
+                      // hvLogEntry.pvVoltage = diff * hvLogEntry.powerRatio;
+
+                      saveDB();
+                    });
+                  },
+                ),
+              ),
+
+              Expanded(flex: 1, child: const BlankRow()),
+
+              Expanded(
+                flex: 6, // 필요에 맞게 1~3 사이로 조절
+
+                child: ConfirmationView(
+                  key: ValueKey('confirm-${hvLogEntry.selectedBoardId}'),
+                  inspectorController: _inspectorController,
+                  managerMainController: _managerMainController,
+                  managerSubController: _managerSubController,
+                  onSendEmail: _onSendEmail,
+                     customerEmail: _selectedEmail,
+
+                  // ⬇️ 이미 저장된 서명을 내려보내 화면에 보여주기
+                  initialManagerMainSignature: hvLogEntry.managerMainSignature,
+                  initialManagerSubSignature: hvLogEntry.managerSubSignature,
+
+                  // ⬇️ 이름 변경(기존대로)
+                  onNameChanged: (field, value) {
+                    setState(() {
+                      switch (field) {
+                        case '점검 확인자':
+                          hvLogEntry.inspectorName = value;
+                          break;
+                        case '안전관리자(정)':
+                          hvLogEntry.managerMainName = value;
+                          break;
+                        case '안전관리자(부)':
+                          hvLogEntry.managerSubName = value;
+                          break;
+                      }
+                      saveDB();
+                    });
+                  },
+
+                  // ⬇️ 서명 변경을 메인에 반영
+                  onSignatureChanged: (who, bytes) {
+                    setState(() {
+                      switch (who) {
+                        case '안전관리자(정)':
+                          hvLogEntry.managerMainSignature = bytes;
+                          break;
+                        case '안전관리자(부)':
+                          hvLogEntry.managerSubSignature = bytes;
+                          break;
+                      }
+                      saveDB();
+                    });
+                  },
+                ),
+              ),
+            ],
           ),
-
-          Expanded(
-            flex: 1,
-            child: GuidelineInputWidgetLow(
-              entry: hvLogEntry,
-              onChanged: (field, value) {
-                setState(() {
-                  // 1) 들어온 field 이름에 따라 entry 필드 업데이트
-              
-
-                  hvLogEntry.guidelineLowSum =  hvLogEntry.guidelineLowCurrent9 -  hvLogEntry.guidelineLowPre5; 
-                  hvLogEntry.preMonthGenerationKwh =   hvLogEntry.guidelineLowSum*hvLogEntry.powerRatio ;
-
-                  // 3) (선택) pvVoltage 자동 계산
-                  // final diff =
-                  //     hvLogEntry.guidelineCurrentSum -
-                  //     hvLogEntry.guidelinePrevSum;
-                  // hvLogEntry.pvVoltage = diff * hvLogEntry.powerRatio;
-
-                  saveDB();
-                });
-              },
-            ),
-          ),
-
-          Expanded(flex: 1, child: const BlankRow()),
-
-          Expanded(
-            flex: 6, // 필요에 맞게 1~3 사이로 조절
-
-            child: ConfirmationView(
-              key: ValueKey('confirm-${hvLogEntry.selectedBoardId}'),
-              inspectorController: _inspectorController,
-              managerMainController: _managerMainController,
-              managerSubController: _managerSubController,
-              onSendEmail: _onSendEmail,
-
-              // ⬇️ 이미 저장된 서명을 내려보내 화면에 보여주기
-              initialManagerMainSignature: hvLogEntry.managerMainSignature,
-              initialManagerSubSignature: hvLogEntry.managerSubSignature,
-
-              // ⬇️ 이름 변경(기존대로)
-              onNameChanged: (field, value) {
-                setState(() {
-                  switch (field) {
-                    case '점검 확인자':
-                      hvLogEntry.inspectorName = value;
-                      break;
-                    case '안전관리자(정)':
-                      hvLogEntry.managerMainName = value;
-                      break;
-                    case '안전관리자(부)':
-                      hvLogEntry.managerSubName = value;
-                      break;
-                  }
-                  saveDB();
-                });
-              },
-
-              // ⬇️ 서명 변경을 메인에 반영
-              onSignatureChanged: (who, bytes) {
-                setState(() {
-                  switch (who) {
-                    case '안전관리자(정)':
-                      hvLogEntry.managerMainSignature = bytes;
-                      break;
-                    case '안전관리자(부)':
-                      hvLogEntry.managerSubSignature = bytes;
-                      break;
-                  }
-                  saveDB();
-                });
-              },
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

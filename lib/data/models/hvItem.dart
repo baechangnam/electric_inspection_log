@@ -10,31 +10,39 @@ class SimpleHvLogEntry {
   List<InspectionEntry> highVoltageItems;
   List<InspectionEntry> solarItems;
 
+  // ── 송전 전압 ─────────────────────────────
   double transmissionRtoS; // R~S 전압 (V)
-  double transmissionStoT; // S~T 전압
-  double transmissionRtoT; // R~T 전압
+  double transmissionStoT; // S~T 전압 (V)
+  double transmissionRtoT; // R~T 전압 (V)
 
+  // ── PV 전압/발전량 ─────────────────────────
   double pvVoltage; // PV 전압 (V)
-
   double currentGenerationKwh; // 현재 발전량 (kWh)
   double cumulativeGenerationMwh; // 누적 발전량 (MWh)
 
-  // ————— 기존 전력/배율/역율 필드 —————
+  // ── 전력/배율/역율 ─────────────────────────
   double maxPower;
   double avgPower;
   double powerRatio;
   double powerFactor;
 
-  // ————— 새로 추가하는 측정 전압 필드 —————
+  // ── 측정 전압(추가) ────────────────────────
   double measuredVoltageRtoS; // R~S 측정 전압 (V)
   double measuredVoltageStoT; // S~T 측정 전압 (V)
   double measuredVoltageRtoT; // R~T 측정 전압 (V)
-  double measuredVoltageN; // N 측정 전압   (V)
+  double measuredVoltageN;    // N   측정 전압 (V)
 
+  // ── 점검 결과 입력 ─────────────────────────
+  // 레거시: 한 덩어리 문자열 (남겨둠 / 호환용)
   String inspectionResultNumeric;
-  // 여기에 추가: 터치 입력으로 그린 이미지를 Uint8List로 보관
+
+  // 새 구조: 4줄 분할 저장(번호 없이 원문만 보관)
+  List<String> inspectionResultLines;
+
+  // 터치 입력(그림)
   Uint8List? inspectionResultImage;
 
+  // ── 지침 입력 ─────────────────────────────
   double guidelineCurrent4;
   double guidelineCurrent5;
   double guidelineCurrent6;
@@ -44,17 +52,20 @@ class SimpleHvLogEntry {
   double guidelinePrev10;
   double guidelinePrev11;
   double guidelinePrevSum;
-  String inspectorName = '';
-  String managerMainName = '';
-  String managerSubName = '';
+
+  // 결재/확인자
+  String inspectorName;
+  String managerMainName;
+  String managerSubName;
 
   Uint8List? managerMainSignature; // 안전관리자(정) 서명
-  Uint8List? managerSubSignature; // 안전관리자(부) 서명
+  Uint8List? managerSubSignature;  // 안전관리자(부) 서명
 
-  double guidelineLowPre5; //전일
-  double guidelineLowCurrent9; //현재
-  double guidelineLowSum; //지침 차
-  double preMonthGenerationKwh; //전월발전량
+  // ── 저압 지침(추가) ────────────────────────
+  double guidelineLowPre5;     // 전일
+  double guidelineLowCurrent9; // 현재
+  double guidelineLowSum;      // 지침 차
+  double preMonthGenerationKwh;// 전월 발전량
 
   SimpleHvLogEntry({
     required this.selectedBoardId,
@@ -67,9 +78,29 @@ class SimpleHvLogEntry {
     this.transmissionStoT = 0.0,
     this.transmissionRtoT = 0.0,
 
+    // PV/발전량
     this.pvVoltage = 0.0,
-
     this.currentGenerationKwh = 0.0,
+    this.cumulativeGenerationMwh = 0.0,
+
+    // 전력/배율/역율
+    this.maxPower = 0.0,
+    this.avgPower = 0.0,
+    this.powerRatio = 0.0,
+    this.powerFactor = 0.0,
+
+    // 측정 전압
+    this.measuredVoltageRtoS = 0.0,
+    this.measuredVoltageStoT = 0.0,
+    this.measuredVoltageRtoT = 0.0,
+    this.measuredVoltageN = 0.0,
+
+    // 점검 결과(텍스트/이미지)
+    this.inspectionResultNumeric = '',
+    this.inspectionResultLines = const ['', '', '', ''],
+    this.inspectionResultImage,
+
+    // 지침
     this.guidelineCurrent4 = 0.0,
     this.guidelineCurrent5 = 0.0,
     this.guidelineCurrent6 = 0.0,
@@ -79,40 +110,52 @@ class SimpleHvLogEntry {
     this.guidelinePrev11 = 0.0,
     this.guidelinePrevSum = 0.0,
 
-    // 발전량 기본값
-    this.cumulativeGenerationMwh = 0.0,
-
-    // 전력/배율/역율 기본값
-    this.maxPower = 0.0,
-    this.avgPower = 0.0,
-    this.powerRatio = 0.0,
-    this.powerFactor = 0.0,
-
-    // 측정 전압 기본값
-    this.measuredVoltageRtoS = 0.0,
-    this.measuredVoltageStoT = 0.0,
-    this.measuredVoltageRtoT = 0.0,
-    this.measuredVoltageN = 0.0,
-    this.inspectionResultNumeric = '',
-    this.inspectionResultImage,
+    // 결재/확인자
     this.inspectorName = '',
     this.managerMainName = '',
     this.managerSubName = '',
     this.managerMainSignature,
     this.managerSubSignature,
 
+    // 저압 지침/전월발전량
     this.guidelineLowPre5 = 0.0,
     this.guidelineLowCurrent9 = 0.0,
     this.guidelineLowSum = 0.0,
     this.preMonthGenerationKwh = 0.0,
   });
 
+  // ── JSON 역직렬화 ──────────────────────────
   factory SimpleHvLogEntry.fromJson(Map<String, dynamic> j) {
     Uint8List? _bytes(String? b64) =>
         (b64 == null || b64.isEmpty) ? null : base64Decode(b64);
 
+    // 레거시 문자열에서 4줄 뽑는 보조(옛 데이터 호환)
+    List<String> _linesFromLegacy() {
+      final legacy = (j['inspectionResultNumeric'] ?? '') as String;
+      if (legacy.trim().isEmpty) return ['', '', '', ''];
+      final parts = legacy
+          .split('\n')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+      return List.generate(4, (i) => i < parts.length ? parts[i] : '');
+    }
+
+    final linesJson = j['inspectionResultLines'];
+    List<String> lines = (linesJson is List)
+        ? linesJson.map((e) => (e ?? '').toString()).toList()
+        : _linesFromLegacy();
+
+    // 안전 보정: 항상 4칸
+    if (lines.length < 4) {
+      lines = [...lines, ...List.filled(4 - lines.length, '')];
+    } else if (lines.length > 4) {
+      lines = lines.sublist(0, 4);
+    }
+
     return SimpleHvLogEntry(
       selectedBoardId: j['selectedBoardId'] ?? '',
+
       lowVoltageItems: (j['lowVoltageItems'] as List? ?? [])
           .map((e) => InspectionEntry.fromJson(e))
           .toList(),
@@ -126,8 +169,8 @@ class SimpleHvLogEntry {
       transmissionRtoS: _parseDouble(j['transmissionRtoS']),
       transmissionStoT: _parseDouble(j['transmissionStoT']),
       transmissionRtoT: _parseDouble(j['transmissionRtoT']),
-      pvVoltage: _parseDouble(j['pvVoltage']),
 
+      pvVoltage: _parseDouble(j['pvVoltage']),
       currentGenerationKwh: _parseDouble(j['currentGenerationKwh']),
       cumulativeGenerationMwh: _parseDouble(j['cumulativeGenerationMwh']),
 
@@ -142,6 +185,7 @@ class SimpleHvLogEntry {
       measuredVoltageN: _parseDouble(j['measuredVoltageN']),
 
       inspectionResultNumeric: j['inspectionResultNumeric'] ?? '',
+      inspectionResultLines: lines,
       inspectionResultImage: j['inspectionResultImage'] != null
           ? base64Decode(j['inspectionResultImage'])
           : null,
@@ -168,84 +212,112 @@ class SimpleHvLogEntry {
     );
   }
 
-  String? _b64(Uint8List? bytes) =>
-      (bytes == null || bytes.isEmpty) ? null : base64Encode(bytes);
-
+  // ── JSON 직렬화 ────────────────────────────
   Map<String, dynamic> toJson() => {
-    'selectedBoardId': selectedBoardId,
-    'lowVoltageItems': lowVoltageItems.map((e) => e.toJson()).toList(),
-    'highVoltageItems': highVoltageItems.map((e) => e.toJson()).toList(),
-    'solarItems': solarItems.map((e) => e.toJson()).toList(),
+        'selectedBoardId': selectedBoardId,
+        'lowVoltageItems': lowVoltageItems.map((e) => e.toJson()).toList(),
+        'highVoltageItems': highVoltageItems.map((e) => e.toJson()).toList(),
+        'solarItems': solarItems.map((e) => e.toJson()).toList(),
 
-    // 송전 전압
-    'transmissionRtoS': transmissionRtoS,
-    'transmissionStoT': transmissionStoT,
-    'transmissionRtoT': transmissionRtoT,
+        'transmissionRtoS': transmissionRtoS,
+        'transmissionStoT': transmissionStoT,
+        'transmissionRtoT': transmissionRtoT,
 
-    // PV 전압
-    'pvVoltage': pvVoltage,
+        'pvVoltage': pvVoltage,
+        'currentGenerationKwh': currentGenerationKwh,
+        'cumulativeGenerationMwh': cumulativeGenerationMwh,
 
-    // 발전량
-    'currentGenerationKwh': currentGenerationKwh,
-    'cumulativeGenerationMwh': cumulativeGenerationMwh,
+        'maxPower': maxPower,
+        'avgPower': avgPower,
+        'powerRatio': powerRatio,
+        'powerFactor': powerFactor,
 
-    // 전력/배율/역율
-    'maxPower': maxPower,
-    'avgPower': avgPower,
-    'powerRatio': powerRatio,
-    'powerFactor': powerFactor,
+        'measuredVoltageRtoS': measuredVoltageRtoS,
+        'measuredVoltageStoT': measuredVoltageStoT,
+        'measuredVoltageRtoT': measuredVoltageRtoT,
+        'measuredVoltageN': measuredVoltageN,
 
-    // 측정 전압
-    'measuredVoltageRtoS': measuredVoltageRtoS,
-    'measuredVoltageStoT': measuredVoltageStoT,
-    'measuredVoltageRtoT': measuredVoltageRtoT,
-    'measuredVoltageN': measuredVoltageN,
+        'inspectionResultNumeric': inspectionResultNumeric,
+        'inspectionResultLines': List<String>.from(inspectionResultLines),
+        'inspectionResultImage':
+            inspectionResultImage != null ? base64Encode(inspectionResultImage!) : null,
 
-    // 점검 결과
-    'inspectionResultNumeric': inspectionResultNumeric,
-    'inspectionResultImage': inspectionResultImage != null
-        ? base64Encode(inspectionResultImage!)
-        : null,
+        'guidelineCurrent4': guidelineCurrent4,
+        'guidelineCurrent5': guidelineCurrent5,
+        'guidelineCurrent6': guidelineCurrent6,
+        'guidelineCurrentSum': guidelineCurrentSum,
+        'guidelinePrev9': guidelinePrev9,
+        'guidelinePrev10': guidelinePrev10,
+        'guidelinePrev11': guidelinePrev11,
+        'guidelinePrevSum': guidelinePrevSum,
 
-    // 지침
-    'guidelineCurrent4': guidelineCurrent4,
-    'guidelineCurrent5': guidelineCurrent5,
-    'guidelineCurrent6': guidelineCurrent6,
-    'guidelineCurrentSum': guidelineCurrentSum,
-    'guidelinePrev9': guidelinePrev9,
-    'guidelinePrev10': guidelinePrev10,
-    'guidelinePrev11': guidelinePrev11,
-    'guidelinePrevSum': guidelinePrevSum,
-    'guidelineLowPre5': guidelineLowPre5,
-    'guidelineLowCurrent9': guidelineLowCurrent9,
-    'guidelineLowSum': guidelineLowSum,
-    'preMonthGenerationKwh': preMonthGenerationKwh,
+        'guidelineLowPre5': guidelineLowPre5,
+        'guidelineLowCurrent9': guidelineLowCurrent9,
+        'guidelineLowSum': guidelineLowSum,
+        'preMonthGenerationKwh': preMonthGenerationKwh,
 
-    // 결재자 이름
-    'inspectorName': inspectorName,
-    'managerMainName': managerMainName,
-    'managerSubName': managerSubName,
+        'inspectorName': inspectorName,
+        'managerMainName': managerMainName,
+        'managerSubName': managerSubName,
 
-    'managerMainSignature': _b64(managerMainSignature),
-    'managerSubSignature': _b64(managerSubSignature),
-  };
+        'managerMainSignature':
+            (managerMainSignature == null || managerMainSignature!.isEmpty)
+                ? null
+                : base64Encode(managerMainSignature!),
+        'managerSubSignature':
+            (managerSubSignature == null || managerSubSignature!.isEmpty)
+                ? null
+                : base64Encode(managerSubSignature!),
+      };
 
+  // ── 유틸 ──────────────────────────────────
   static double _parseDouble(dynamic v) {
     if (v == null) return 0.0;
     if (v is num) return v.toDouble();
     return double.tryParse(v.toString().replaceAll(',', '')) ?? 0.0;
   }
+
+  String? _b64(Uint8List? bytes) =>
+      (bytes == null || bytes.isEmpty) ? null : base64Encode(bytes);
+
+  // 라인 접근/설정 (범위 안전)
+  String getLine(int i) => (i >= 0 && i < 4) ? inspectionResultLines[i] : '';
+  void setLine(int i, String value) {
+    if (i < 0 || i >= 4) return;
+    inspectionResultLines[i] = value.replaceAll('\r', '').trim();
+  }
+
+  // 표시용: 번호 붙여 문자열 조합 (빈 줄은 스킵)
+  String numberedResultText() {
+    final b = StringBuffer();
+    int shown = 0;
+    for (int i = 0; i < inspectionResultLines.length; i++) {
+      final t = inspectionResultLines[i].trim();
+      if (t.isEmpty) continue;
+      shown++;
+      b.writeln('${i + 1}. $t');
+    }
+    // 모두 비었고, 레거시 문자열이 있으면 그대로 반환
+    if (shown == 0 && inspectionResultNumeric.trim().isNotEmpty) {
+      return inspectionResultNumeric;
+    }
+    return b.toString().trimRight();
+  }
 }
 
+// (선택) 기존처럼 필드 접근에 쓰던 enum/extension 유지하고 싶으면 아래 사용
 enum TransmissionVoltageField { rToS, sToT, rToT }
 
 extension TransmissionAccess on SimpleHvLogEntry {
   double getTransmission(TransmissionVoltageField f) {
-    return switch (f) {
-      TransmissionVoltageField.rToS => transmissionRtoS,
-      TransmissionVoltageField.sToT => transmissionStoT,
-      TransmissionVoltageField.rToT => transmissionRtoT,
-    };
+    switch (f) {
+      case TransmissionVoltageField.rToS:
+        return transmissionRtoS;
+      case TransmissionVoltageField.sToT:
+        return transmissionStoT;
+      case TransmissionVoltageField.rToT:
+        return transmissionRtoT;
+    }
   }
 
   void setTransmission(TransmissionVoltageField f, double v) {

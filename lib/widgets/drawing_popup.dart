@@ -32,7 +32,7 @@ class _DrawingDialogContentState extends State<DrawingDialogContent> {
               onPanStart: (e) {
                 final paint = Paint()
                   ..color = Colors.black
-                  ..strokeWidth = 8.0
+                  ..strokeWidth = 4.0
                   ..strokeCap = StrokeCap.round;
                 _currentStroke = Stroke([e.localPosition], paint);
                 setState(() => _strokes.add(_currentStroke!));

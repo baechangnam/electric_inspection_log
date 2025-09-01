@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'numeric_keypad.dart';
 import '../data/models/hvItem.dart';
 
-
 /// 한전 지침 입력 전용 위젯
 class GuidelineInputWidgetLow extends StatefulWidget {
   final SimpleHvLogEntry entry;
@@ -15,6 +14,31 @@ class GuidelineInputWidgetLow extends StatefulWidget {
 
   @override
   _GuidelineInputWidgetState createState() => _GuidelineInputWidgetState();
+}
+
+String _fmt(double v) {
+  if (v == 0) return '_';
+
+  final isInt = v % 1 == 0;
+  String s = isInt ? v.toStringAsFixed(0) : v.toStringAsFixed(2);
+
+  if (!isInt && s.contains('.')) {
+    s = s.replaceFirst(RegExp(r'0+$'), ''); // 소수부 끝 0 제거
+    s = s.replaceFirst(RegExp(r'\.$'), ''); // 소수점만 남은 경우 제거
+  }
+
+  final parts = s.split('.');
+  final intPart = parts[0];
+  final decPart = parts.length > 1 ? parts[1] : '';
+
+  final buf = StringBuffer();
+  for (int i = 0; i < intPart.length; i++) {
+    final idxFromEnd = intPart.length - i;
+    buf.write(intPart[i]);
+    if (idxFromEnd > 1 && idxFromEnd % 3 == 1) buf.write(',');
+  }
+
+  return decPart.isEmpty ? buf.toString() : '${buf.toString()}.$decPart';
 }
 
 class _GuidelineInputWidgetState extends State<GuidelineInputWidgetLow> {
@@ -37,6 +61,31 @@ class _GuidelineInputWidgetState extends State<GuidelineInputWidgetLow> {
       widget.onChanged?.call(title, result);
     }
   }
+
+  Widget _valueCell(
+    double value,
+    double fontSize,
+    int flex, {
+    FontWeight weight = FontWeight.normal,
+    TextAlign align = TextAlign.center,
+  }) => Expanded(
+    flex: flex,
+    child: Container(
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey.shade300, width: 0.5),
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          _fmt(value), // ← 여기서만 포맷
+          textAlign: align, // 요구: 가운데 맞춤
+          style: TextStyle(fontSize: fontSize, fontWeight: weight),
+        ),
+      ),
+    ),
+  );
 
   // 텍스트 셀
   Widget _textCell(String text, double fontSize, int flex) => Expanded(
@@ -124,7 +173,6 @@ class _GuidelineInputWidgetState extends State<GuidelineInputWidgetLow> {
                     final v2 = widget.entry.guidelinePrev9;
                     final diff = v2 - v1;
                     widget.entry.guidelineLowSum = diff;
-    
 
                     // 3) 부모에도 ⑥ 변경 알려주기(자동 계산값)
                     widget.onChanged?.call('현 지침 ⑥ 입력', diff);
@@ -140,7 +188,8 @@ class _GuidelineInputWidgetState extends State<GuidelineInputWidgetLow> {
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
-                      value == 0 ? '' : value.toStringAsFixed(0),
+                      _fmt(value), // ✅ 포맷 적용
+                      textAlign: TextAlign.center, // ✅ 가운데 맞춤
                       style: TextStyle(fontSize: fontSize),
                     ),
                   ),
@@ -187,9 +236,8 @@ class _GuidelineInputWidgetState extends State<GuidelineInputWidgetLow> {
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
-                        (widget.entry.guidelineLowSum == 0)
-                            ? ''
-                            : widget.entry.guidelineLowSum.toStringAsFixed(0),
+                        _fmt(widget.entry.guidelineLowSum), // ✅ 포맷 적용
+                        textAlign: TextAlign.center, // ✅ 가운데 맞춤
                         style: TextStyle(fontSize: fontSize),
                       ),
                     ),

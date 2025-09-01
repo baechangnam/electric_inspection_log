@@ -21,6 +21,8 @@ class BoardItem {
   final String feeWithTax;
   final String email;
   final String davinTechEmail;
+  final String? memo;
+  final String ratio;
 
   BoardItem({
     required this.id,
@@ -44,6 +46,8 @@ class BoardItem {
     required this.feeWithTax,
     required this.email,
     required this.davinTechEmail,
+    required this.memo,
+    required this.ratio,
   });
 
   factory BoardItem.fromJson(Map<String, dynamic> json) {
@@ -57,7 +61,8 @@ class BoardItem {
       incomingSecondaryVoltage: json['incoming_secondary_voltage'] as String,
       incomingCapacity: json['incoming_capacity'] as String,
       generationPrimaryVoltage: json['generation_primary_voltage'] as String,
-      generationSecondaryVoltage: json['generation_secondary_voltage'] as String,
+      generationSecondaryVoltage:
+          json['generation_secondary_voltage'] as String,
       generationCapacity: json['generation_capacity'] as String,
       solarVoltage: json['solar_voltage'] as String,
       solarCapacity: json['solar_capacity'] as String,
@@ -69,30 +74,64 @@ class BoardItem {
       feeWithTax: json['fee_with_tax'] as String,
       email: json['email'] as String,
       davinTechEmail: json['davin_tech_email'] as String,
+      memo: json['memo'] as String? ?? '',
+      ratio: json['ratio'] as String? ?? '',
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'consumer_name': consumerName,
-        'facility_location': facilityLocation,
-        'representative_name': representativeName,
-        'phone_number': phoneNumber,
-        'incoming_primary_voltage': incomingPrimaryVoltage,
-        'incoming_secondary_voltage': incomingSecondaryVoltage,
-        'incoming_capacity': incomingCapacity,
-        'generation_primary_voltage': generationPrimaryVoltage,
-        'generation_secondary_voltage': generationSecondaryVoltage,
-        'generation_capacity': generationCapacity,
-        'solar_voltage': solarVoltage,
-        'solar_capacity': solarCapacity,
-        'storage_voltage': storageVoltage,
-        'storage_capacity': storageCapacity,
-        'weight': weight,
-        'supervisor_name': supervisorName,
-        'inspector_name': inspectorName,
-        'fee_with_tax': feeWithTax,
-        'email': email,
-        'davin_tech_email': davinTechEmail,
-      };
+    'id': id,
+    'consumer_name': consumerName,
+    'facility_location': facilityLocation,
+    'representative_name': representativeName,
+    'phone_number': phoneNumber,
+    'incoming_primary_voltage': incomingPrimaryVoltage,
+    'incoming_secondary_voltage': incomingSecondaryVoltage,
+    'incoming_capacity': incomingCapacity,
+    'generation_primary_voltage': generationPrimaryVoltage,
+    'generation_secondary_voltage': generationSecondaryVoltage,
+    'generation_capacity': generationCapacity,
+    'solar_voltage': solarVoltage,
+    'solar_capacity': solarCapacity,
+    'storage_voltage': storageVoltage,
+    'storage_capacity': storageCapacity,
+    'weight': weight,
+    'supervisor_name': supervisorName,
+    'inspector_name': inspectorName,
+    'fee_with_tax': feeWithTax,
+    'email': email,
+    'davin_tech_email': davinTechEmail,
+    'memo': memo,
+    'ratio': ratio,
+  };
+}
+
+extension BoardItemCopy on BoardItem {
+  BoardItem copyWith({String? memo}) {
+    return BoardItem(
+      id: id,
+      consumerName: consumerName,
+      facilityLocation: facilityLocation,
+      representativeName: representativeName,
+      phoneNumber: phoneNumber,
+      incomingPrimaryVoltage: incomingPrimaryVoltage,
+      incomingSecondaryVoltage: incomingSecondaryVoltage,
+      incomingCapacity: incomingCapacity,
+      generationPrimaryVoltage: generationPrimaryVoltage,
+      generationSecondaryVoltage: generationSecondaryVoltage,
+      generationCapacity: generationCapacity,
+      solarVoltage: solarVoltage,
+      solarCapacity: solarCapacity,
+      storageVoltage: storageVoltage,
+      storageCapacity: storageCapacity,
+      weight: weight,
+      supervisorName: supervisorName,
+      inspectorName: inspectorName,
+      feeWithTax: feeWithTax,
+      email: email,
+      davinTechEmail: davinTechEmail,
+      memo: memo ?? this.memo,
+      ratio: ratio,
+    );
+  }
 }

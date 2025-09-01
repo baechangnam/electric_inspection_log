@@ -337,21 +337,23 @@ class _TransmissionVoltageDoubleWidgetState
                   // 2) 입력 셀
                   Expanded(
                     flex: 4,
-                    child: GestureDetector(
-                      // 언제나 overallIndex=10 으로 호출
-                      onTap: () => _showPVInput(10, widget.entry.pvVoltage),
-                      child: Center(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            widget.entry.pvVoltage == 0
-                                ? '-'
-                                : widget.entry.pvVoltage.toStringAsFixed(0),
-                            style: TextStyle(fontSize: baseFont),
-                          ),
-                        ),
-                      ),
-                    ),
+                   child: GestureDetector(
+  onTap: () => _showPVInput(10, widget.entry.pvVoltage),
+  behavior: HitTestBehavior.opaque, // 빈 영역도 터치되게
+  child: Container(
+    alignment: Alignment.centerRight, // 👉 오른쪽 정렬
+    padding: const EdgeInsets.only(right: 4), // 오른쪽 여백 조금
+    child: FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerRight, // 👉 FittedBox도 오른쪽 기준
+      child: Text(
+        widget.entry.pvVoltage == 0 ? '-' : widget.entry.pvVoltage.toStringAsFixed(0),
+        textAlign: TextAlign.right, // 👉 Text 자체도 오른쪽 정렬
+        style: TextStyle(fontSize: baseFont),
+      ),
+    ),
+  ),
+),
                   ),
                   // 3) 단위 'V'
                   Expanded(

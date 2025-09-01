@@ -12,6 +12,7 @@ class ConfirmationView extends StatefulWidget {
   final void Function(String label, Uint8List? bytes)? onSignatureChanged;
 
   final void Function(String fieldName, String value)? onNameChanged;
+  final String? customerEmail; // ⬅️ 추가
 
   /// 메일 발송 콜백
   final VoidCallback onSendEmail;
@@ -26,6 +27,7 @@ class ConfirmationView extends StatefulWidget {
     this.initialManagerMainSignature,
     this.initialManagerSubSignature,
     this.onSignatureChanged,
+    this.customerEmail, // ⬅️ 추가
   }) : super(key: key);
 
   @override
@@ -56,6 +58,102 @@ class _ConfirmationViewState extends State<ConfirmationView> {
         widget.initialManagerSubSignature) {
       _managerSubSignature = widget.initialManagerSubSignature;
     }
+  }
+
+  Future<void> _showInspectorDialog() async {
+    final nameCtrl = TextEditingController(
+      text: widget.inspectorController.text,
+    );
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('점검 확인자'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 1. 이름 입력
+              TextField(
+                controller: nameCtrl,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: '점검 확인자 이름',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 2. 메일발송 & 서명 버튼
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      child: const Text('메일발송'),
+                      onPressed: () {
+                        final email = widget.customerEmail;
+                        if (email == null || email.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('등록된 메일주소가 없습니다. 서명을 하세요!'),
+                            ),
+                          );
+                          return;
+                        }
+                        Navigator.of(ctx).pop(); // 닫기
+                        widget.onSendEmail(); // 콜백 호출
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: FilledButton(
+                      child: const Text('서명'),
+                      onPressed: () async {
+                        final pngBytes = await showDialog<Uint8List>(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (_) => Dialog(
+                            child: SizedBox(
+                              width: MediaQuery.of(context).size.width * 0.8,
+                              height: MediaQuery.of(context).size.height * 0.6,
+                              child: DrawingDialogContent(),
+                            ),
+                          ),
+                        );
+                        if (pngBytes != null) {
+                          setState(() {
+                            _inspectorSignature = pngBytes;
+                          });
+                          widget.onSignatureChanged?.call('점검 확인자', pngBytes);
+                          Navigator.of(ctx).pop(); // 닫기
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('취소'),
+            ),
+            TextButton(
+              onPressed: () {
+                widget.inspectorController.text = nameCtrl.text;
+                widget.onNameChanged?.call('점검 확인자', nameCtrl.text);
+                setState(() => _inspectorSignature = null); // 이름 바꾸면 서명 초기화
+                Navigator.of(ctx).pop();
+              },
+              child: const Text('입력'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   static const _cellBorder = BorderSide(color: Colors.black, width: 0.5);
@@ -129,6 +227,7 @@ class _ConfirmationViewState extends State<ConfirmationView> {
                                 setState(() => _inspectorSignature = b),
                             onMailTap: widget.onSendEmail,
                             baseFont: baseFont,
+                            onRowTap: _showInspectorDialog, // ✅ 이 행만 전체 터치 → 팝업
                           ),
                           _buildRow(
                             label: '안전관리자(정)',
@@ -167,8 +266,9 @@ class _ConfirmationViewState extends State<ConfirmationView> {
     required String actionLabel,
     required Uint8List? signature,
     required ValueChanged<Uint8List?> onSignatureAdded,
-    VoidCallback? onMailTap,
     required double baseFont,
+    VoidCallback? onRowTap, // ✅ 로우 전체 터치 콜백(점검확인자 전용 등)
+    VoidCallback? onMailTap, // ✅ 메일발송 콜백
   }) {
     final placeholder = '';
     final displayText = controller.text.isEmpty ? placeholder : controller.text;
@@ -186,139 +286,153 @@ class _ConfirmationViewState extends State<ConfirmationView> {
         ),
       );
       if (pngBytes != null) {
-        onSignatureAdded(pngBytes);
-        // ✨ 메인으로 이벤트 전파
-        widget.onSignatureChanged?.call(label, pngBytes);
+        onSignatureAdded(pngBytes); // 로컬 상태 갱신
+        widget.onSignatureChanged?.call(label, pngBytes); // 상위에도 전파
+        setState(() {}); // 리빌드
       }
     }
 
-    return Expanded(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // 라벨 셀
-          Expanded(
-            flex: 3,
+    // ─────────────────────────────────────────────────────────────
+    // 행 내부 UI (라벨 / 입력 / 액션)
+    // ─────────────────────────────────────────────────────────────
+    final rowChild = Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // 라벨 셀
+        Expanded(
+          flex: 3,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.fromBorderSide(_cellBorder),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              label,
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: baseFont),
+            ),
+          ),
+        ),
+
+        // 입력 셀
+        Expanded(
+          flex: 2, // 요청대로 이름칸 축소
+          child: GestureDetector(
+            onTap: () async {
+              String input = controller.text;
+              if (onRowTap != null) {
+                onRowTap();
+                return;
+              }
+
+              final result = await showDialog<String>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: Text(label),
+                  content: TextField(
+                    controller: TextEditingController(text: controller.text),
+                    autofocus: true,
+                    keyboardType: TextInputType.text,
+                    decoration: const InputDecoration(
+                      hintText: '',
+                      border: InputBorder.none,
+                    ),
+                    onChanged: (v) => input = v,
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('취소'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, input),
+                      child: const Text('확인'),
+                    ),
+                  ],
+                ),
+              );
+
+              if (result != null) {
+                // 이름 바꾸면 해당 행의 서명 초기화(정책 유지)
+                onSignatureAdded(null);
+                widget.onSignatureChanged?.call(label, null);
+
+                controller.text = result;
+                widget.onNameChanged?.call(label, result);
+                setState(() {});
+              }
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.fromBorderSide(_cellBorder),
+              ),
+              alignment: Alignment.centerLeft, // 가로 왼쪽, 세로 중앙
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                displayText,
+                style: TextStyle(fontSize: baseFont),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ),
+          ),
+        ),
+
+        // 액션 셀: 메일발송 or (인)
+        Expanded(
+          flex: 3, // 요청대로 서명/액션 칸 확장
+          child: GestureDetector(
+            onTap: () async {
+              if (actionLabel == '메일발송') {
+                // ✅ onRowTap이 있으면 동일 팝업으로 라우팅
+                if (onRowTap != null) {
+                  onRowTap();
+                  return;
+                }
+                // ⬇️ 기존 메일 동작(관리자 행 등)
+                onMailTap?.call();
+                return;
+              }
+              if (actionLabel == '(인)') {
+                await _showSignatureDialog();
+              }
+            },
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
                 border: Border.fromBorderSide(_cellBorder),
               ),
               alignment: Alignment.center,
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: baseFont,
-                ),
-              ),
-            ),
-          ),
-
-          // 입력 셀 (텍스트만)
-          Expanded(
-            flex: 3,
-            child: GestureDetector(
-              onTap: () async {
-                final result = await showDialog<String>(
-                  context: context,
-                  builder: (ctx) {
-                    String input = controller.text;
-                    return AlertDialog(
-                      title: Text(label),
-                      content: TextField(
-                        controller: TextEditingController(
-                          text: controller.text,
-                        ),
-                        autofocus: true,
-                        keyboardType: TextInputType.text,
-                        decoration: InputDecoration(
-                          hintText: placeholder,
-                          border: InputBorder.none,
-                        ),
-                        onChanged: (v) => input = v,
+              child: signature != null
+                  ? SizedBox.expand(
+                      child: Image.memory(signature, fit: BoxFit.fill),
+                    )
+                  : Text(
+                      actionLabel, // '메일발송' 또는 '(인)'
+                      style: TextStyle(
+                        color: actionLabel == '메일발송'
+                            ? Colors.red
+                            : Colors.black,
+                        fontSize: baseFont,
+                        fontWeight: actionLabel == '메일발송'
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx),
-                          child: Text('취소'),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, input),
-                          child: Text('확인'),
-                        ),
-                      ],
-                    );
-                  },
-                );
-                if (result != null) {
-                  setState(() {
-                    // 내쪽 스테이트 비우기
-                    onSignatureAdded(null);
-                  });
-                  controller.text = result;
-
-                  // ✨ 메인에도 지워졌다고 알리기
-                  widget.onSignatureChanged?.call(label, null);
-
-                  // 이름 변경 콜백도 유지
-                  widget.onNameChanged?.call(label, result);
-                }
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.fromBorderSide(_cellBorder),
-                ),
-                alignment: Alignment.centerLeft,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text(displayText, style: TextStyle(fontSize: baseFont)),
-              ),
+                    ),
             ),
           ),
+        ),
+      ],
+    );
 
-          // 액션 셀: 메일발송 or (인)
-          Expanded(
-            flex: 2,
-            child: GestureDetector(
-              onTap: () {
-                if (actionLabel == '메일발송') {
-                  onMailTap?.call();
-                } else if (actionLabel == '(인)') {
-                  _showSignatureDialog();
-                }
-              },
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.fromBorderSide(_cellBorder),
-                ),
-                alignment: Alignment.center,
-                child: actionLabel == '(인)'
-                    ? (signature != null
-                          ? SizedBox.expand(
-                              child: Image.memory(signature, fit: BoxFit.fill),
-                            )
-                          : Text(
-                              '(인)',
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: baseFont,
-                              ),
-                            ))
-                    : Text(
-                        '메일발송',
-                        style: TextStyle(
-                          color: Colors.red,
-                          fontSize: baseFont,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-              ),
-            ),
-          ),
-        ],
-      ),
+    // ─────────────────────────────────────────────────────────────
+    // 로우 전체 터치(점검확인자 등) 지원: onRowTap이 있으면 InkWell로 감싸기
+    // ─────────────────────────────────────────────────────────────
+    return Expanded(
+      child: onRowTap != null
+          ? InkWell(onTap: onRowTap, child: rowChild)
+          : rowChild,
     );
   }
 }

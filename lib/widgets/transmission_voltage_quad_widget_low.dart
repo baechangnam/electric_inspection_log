@@ -591,7 +591,7 @@ class _TransmissionVoltageQuadWidgetState
                               child: FittedBox(
                                 fit: BoxFit.scaleDown,
                                 child: Text(
-                                     genLabel,
+                                  genLabel,
                                   style: TextStyle(
                                     fontSize: baseFont,
                                     fontWeight: FontWeight.bold,
@@ -606,13 +606,15 @@ class _TransmissionVoltageQuadWidgetState
                             child: GestureDetector(
                               onTap: () => _showNumberInput(
                                 title: genInputTitle,
-                                currentValue: widget.entry.preMonthGenerationKwh,
+                                currentValue:
+                                    widget.entry.preMonthGenerationKwh,
                                 onValueChanged: (v) {
                                   setState(
-                                    () => widget.entry.preMonthGenerationKwh = v,
+                                    () =>
+                                        widget.entry.preMonthGenerationKwh = v,
                                   );
                                   widget.onLineChanged(
-                                    index: baseIndex + 0, // 12
+                                    index: baseIndex + 0, // 12 (기존 그대로)
                                     left: widget.leftEntries[0],
                                     middle: widget.middleEntries[0],
                                     currentGeneration: v,
@@ -620,14 +622,22 @@ class _TransmissionVoltageQuadWidgetState
                                   );
                                 },
                               ),
-                              child: Center(
+                              behavior: HitTestBehavior.opaque, // ✅ 셀 전체 터치
+                              child: Container(
+                                alignment: Alignment.centerRight, // ✅ 오른쪽 정렬
+                                padding: const EdgeInsets.only(
+                                  right: 4,
+                                ), // 우측 여백
                                 child: FittedBox(
                                   fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerRight, // ✅ 우측 기준
                                   child: Text(
                                     widget.entry.preMonthGenerationKwh == 0
                                         ? '-'
-                                        : widget.entry.preMonthGenerationKwh
-                                              .toStringAsFixed(0),
+                                        : formatThousandsDynamic(
+                                            widget.entry.preMonthGenerationKwh,
+                                          ),
+                                    textAlign: TextAlign.right,
                                     style: TextStyle(fontSize: baseFont),
                                   ),
                                 ),
@@ -702,20 +712,31 @@ class _TransmissionVoltageQuadWidgetState
                                   );
                                 },
                               ),
-                              child: Center(
+                              behavior: HitTestBehavior.opaque, // ✅ 셀 전체 터치 가능
+                              child: Container(
+                                alignment: Alignment.centerRight, // ✅ 오른쪽 정렬
+                                padding: const EdgeInsets.only(
+                                  right: 4,
+                                ), // 오른쪽 여백
                                 child: FittedBox(
                                   fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerRight,
                                   child: Text(
                                     widget.entry.cumulativeGenerationMwh == 0
                                         ? '-'
-                                        : widget.entry.cumulativeGenerationMwh
-                                              .toStringAsFixed(0),
+                                        : formatThousandsDynamic(
+                                            widget
+                                                .entry
+                                                .cumulativeGenerationMwh,
+                                          ),
+                                    textAlign: TextAlign.right,
                                     style: TextStyle(fontSize: baseFont),
                                   ),
                                 ),
                               ),
                             ),
                           ),
+
                           // 단위
                           Expanded(
                             flex: 2,
@@ -740,5 +761,41 @@ class _TransmissionVoltageQuadWidgetState
         );
       },
     );
+  }
+
+  String formatThousandsDynamic(double v) {
+    if (v.isNaN || v.isInfinite) return '-';
+    if (v == 0) return '-'; // 0이면 언더바 대신 '-' 유지 (기존 로직)
+
+    final isNeg = v < 0;
+    final abs = v.abs();
+
+    // 소수점 두 자리까지 문자열로
+    String fixed = abs.toStringAsFixed(2); // 예: "74497.20"
+    // 불필요한 0 제거 → "74497.2"
+    fixed = fixed.replaceAll(RegExp(r'0+$'), '');
+    // 마지막이 '.'으로 끝나면 소수점 삭제 → "74497"
+    if (fixed.endsWith('.')) {
+      fixed = fixed.substring(0, fixed.length - 1);
+    }
+
+    final parts = fixed.split('.');
+    final intPart = parts[0];
+    final decPart = parts.length > 1 ? parts[1] : '';
+
+    // 천단위 콤마 삽입
+    final buf = StringBuffer();
+    for (int i = 0; i < intPart.length; i++) {
+      final idxFromEnd = intPart.length - i;
+      buf.write(intPart[i]);
+      if (idxFromEnd > 1 && idxFromEnd % 3 == 1) {
+        buf.write(',');
+      }
+    }
+
+    final core = decPart.isEmpty
+        ? buf.toString()
+        : '${buf.toString()}.$decPart';
+    return isNeg ? '-$core' : core;
   }
 }

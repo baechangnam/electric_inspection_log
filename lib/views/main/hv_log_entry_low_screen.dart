@@ -11,16 +11,12 @@ class HvLogEntryLowScreen extends StatefulWidget {
 class _HvLogEntryScreenStates extends State<HvLogEntryLowScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  @override
+
+
+    @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('저압 점검일지 등록')),
-      body: const SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(8),
-          child: ExcelGridLow(), // 여기에 엑셀 그리드를 넣으면 끝!
-        ),
-      ),
-    );
+    // ✅ excel_grid가 자체적으로 Scaffold + AppBar를 가진 ‘완전한 화면’이라면,
+    // 바깥에서 또 Scaffold를 만들지 말고 그대로 반환하세요.
+    return const ExcelGridLow();
   }
 }
