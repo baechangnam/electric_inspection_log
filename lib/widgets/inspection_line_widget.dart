@@ -1,5 +1,4 @@
 // lib/widgets/inspection_line_widget.dart
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'inspection_entry.dart'; // 경로가 다르면 조정
 import 'judgment_picker.dart';
@@ -9,7 +8,8 @@ typedef LineChanged =
       required InspectionEntry left,
       required InspectionEntry middle,
       required InspectionEntry right,
-      required double value,
+       required double value,   
+      
     });
 
 class InspectionLineWidget extends StatefulWidget {
@@ -66,12 +66,10 @@ class _InspectionLineWidgetState extends State<InspectionLineWidget> {
       widget.onChanged(
         left: widget.left,
         middle: widget.middle,
-        right: widget.right,
-        value: 0,
+        right: widget.right, value: 0
       );
     }
   }
-  final consumerGroup = AutoSizeGroup();
 
   Widget _buildBlock(
     InspectionEntry entry,
@@ -88,21 +86,19 @@ class _InspectionLineWidgetState extends State<InspectionLineWidget> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               alignment: Alignment.center,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300, width: 0.5),
-                color: Colors.white,
-              ),
-
-              child: AutoSizeText(
-                entry.title,
-             
-                maxLines: 2,
-                minFontSize: 6, // 최소 글자 크기
-                stepGranularity: 1, // 글자 줄일 때 간격 (1pt 단위)
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 13, // 기준 크기
-                  fontWeight: FontWeight.normal,
+                   decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300, width: 0.5),
+                  color: Colors.white,
+                ),
+           
+                child: Text(
+                  entry.title,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontWeight: FontWeight.normal,
+                     
+                    fontSize: 13,
+               
                 ),
               ),
             ),
@@ -123,8 +119,7 @@ class _InspectionLineWidgetState extends State<InspectionLineWidget> {
                   widget.onChanged(
                     left: widget.left,
                     middle: widget.middle,
-                    right: widget.right,
-                    value: 0,
+                    right: widget.right, value: 0
                   );
                 }
               },
@@ -160,7 +155,7 @@ class _InspectionLineWidgetState extends State<InspectionLineWidget> {
               onTap: () => _editRemark(entry, '비고 입력', 13),
               child: Container(
                 alignment: Alignment.center, // 가로+세로 중앙
-
+             
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey.shade300, width: 0.5),
                   color: Colors.white,

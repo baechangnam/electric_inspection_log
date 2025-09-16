@@ -2,7 +2,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:electric_inspection_log/core/db/hv_helper.dart';
 import 'package:electric_inspection_log/core/utils/pdf_maker.dart';
 import 'package:electric_inspection_log/core/utils/save_utils.dart';
@@ -1251,15 +1250,14 @@ class _ExcelGridState extends State<ExcelGrid> {
                                 border: border,
                               ),
 
-                              child: AutoSizeText(
-                                '고객명(상호)',
-                                maxLines: 2,
-                                minFontSize: 8, // 최소 글자 크기
-                                stepGranularity: 1, // 글자 줄일 때 간격 (1pt 단위)
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 13, // 기준 크기
-                                  fontWeight: FontWeight.bold,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '고객명(상호)',
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),
@@ -1283,17 +1281,17 @@ class _ExcelGridState extends State<ExcelGrid> {
                                 color: Colors.white,
                                 border: border,
                               ),
-                              child: AutoSizeText(
-                                _selectedConsumer.isEmpty
-                                    ? '수용가 선택'
-                                    : _selectedConsumer,
-                                maxLines: 2,
-                                minFontSize: 8, // 최소 글자 크기
-                                stepGranularity: 1, // 글자 줄일 때 간격 (1pt 단위)
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 13, // 기준 크기
-                                  fontWeight: FontWeight.normal,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  _selectedConsumer.isEmpty
+                                      ? '수용가 선택'
+                                      : _selectedConsumer,
+                                  maxLines: 2,
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.normal,
+                                  ),
                                 ),
                               ),
                             ),
