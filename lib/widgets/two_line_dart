@@ -54,7 +54,7 @@ class _TransmissionVoltageDoubleWidgetState
 
   Widget _fourTwoThreeBlock(
     InspectionEntry entry,
-    double baseFont, {
+    double baseFont1, {
     required VoidCallback onJudgmentTap,
     required VoidCallback onRemarkTap,
   }) {
@@ -77,8 +77,8 @@ class _TransmissionVoltageDoubleWidgetState
                 entry.title,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: baseFont,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  fontWeight: FontWeight.normal,
                 ),
               ),
             ),
@@ -104,8 +104,8 @@ class _TransmissionVoltageDoubleWidgetState
                       ? ''
                       : entry.judgment.label,
                   style: TextStyle(
-                    fontSize: baseFont,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    fontWeight: FontWeight.normal,
                     color: entry.judgment == JudgmentOption.clear
                         ? Colors.grey
                         : Colors.black,
@@ -135,7 +135,7 @@ class _TransmissionVoltageDoubleWidgetState
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   style: TextStyle(
-                    fontSize: baseFont,
+                    fontSize: 13,
                     fontStyle: entry.remark.isEmpty
                         ? FontStyle.italic
                         : FontStyle.normal,
@@ -246,7 +246,7 @@ class _TransmissionVoltageDoubleWidgetState
                   height: lineH,
                   child: _fourTwoThreeBlock(
                     middle,
-                    baseFont,
+                    13,
                     onJudgmentTap: () async {
                       final picked = await showJudgmentPicker(
                           context, middle.judgment);
@@ -326,8 +326,8 @@ class _TransmissionVoltageDoubleWidgetState
                           'P.V 전압\n(DC)',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: baseFont,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            fontWeight: FontWeight.normal,
                             height: 1.2,
                           ),
                         ),
@@ -349,7 +349,7 @@ class _TransmissionVoltageDoubleWidgetState
       child: Text(
         widget.entry.pvVoltage == 0 ? '-' : widget.entry.pvVoltage.toStringAsFixed(0),
         textAlign: TextAlign.right, // 👉 Text 자체도 오른쪽 정렬
-        style: TextStyle(fontSize: baseFont),
+        style: TextStyle(fontSize: 13),
       ),
     ),
   ),
@@ -362,8 +362,8 @@ class _TransmissionVoltageDoubleWidgetState
                       child: Text(
                         'V',
                         style: TextStyle(
-                          fontSize: baseFont,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          fontWeight: FontWeight.normal,
                         ),
                       ),
                     ),

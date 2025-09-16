@@ -15,6 +15,8 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
+    
+
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_11.toString()
     }
@@ -28,6 +30,10 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+          ndk {
+        abiFilters += listOf("armeabi-v7a", "arm64-v8a")
+    }
     }
 
     buildTypes {

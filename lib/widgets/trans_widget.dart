@@ -89,7 +89,7 @@ class _TransmissionVoltageTripleWidgetState
 
   Widget _fourTwoThreeEditableBlock(
     InspectionEntry entry,
-    double baseFont, {
+    double baseFont11, {
     required int overallIndex,
     required InspectionEntry left,
     required InspectionEntry middle,
@@ -111,7 +111,7 @@ class _TransmissionVoltageTripleWidgetState
             child: Text(
               entry.title,
               textAlign: TextAlign.center,
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: baseFont),
+              style: TextStyle(fontWeight: FontWeight.normal, fontSize: 13),
             ),
           ),
         ),
@@ -147,8 +147,8 @@ class _TransmissionVoltageTripleWidgetState
                       ? ''
                       : entry.judgment.label,
                   style: TextStyle(
-                    fontSize: baseFont,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    fontWeight: FontWeight.normal,
                     color: entry.judgment == JudgmentOption.clear
                         ? Colors.grey
                         : Colors.black,
@@ -164,7 +164,7 @@ class _TransmissionVoltageTripleWidgetState
             onTap: () => _editRemark(
               entry,
               '비고 입력',
-              baseFont,
+              13,
               overallIndex,
               left,
               middle,
@@ -184,7 +184,7 @@ class _TransmissionVoltageTripleWidgetState
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   style: TextStyle(
-                    fontSize: baseFont,
+                    fontSize: 13,
                     fontStyle: entry.remark.isEmpty
                         ? FontStyle.italic
                         : FontStyle.normal,
@@ -272,7 +272,7 @@ class _TransmissionVoltageTripleWidgetState
                   value == 0 ? '-' : value.toStringAsFixed(0),
                   style: TextStyle(
                     fontSize: baseFont,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.normal,
                   ),
                 ),
               ),
@@ -297,7 +297,6 @@ class _TransmissionVoltageTripleWidgetState
       builder: (ctx, constraints) {
         final totalH = constraints.maxHeight;
         final lineH = totalH / 3;
-        final baseFont = lineH * 0.55;
 
         return Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -315,7 +314,7 @@ class _TransmissionVoltageTripleWidgetState
                     height: lineH,
                     child: _fourTwoThreeEditableBlock(
                       left,
-                      baseFont,
+                      13,
                       overallIndex: overallIndex,
                       left: left,
                       middle: middle,
@@ -339,7 +338,7 @@ class _TransmissionVoltageTripleWidgetState
                     height: lineH,
                     child: _fourTwoThreeEditableBlock(
                       middle,
-                      baseFont,
+                      13,
                       overallIndex: overallIndex,
                       left: left,
                       middle: middle,
@@ -366,8 +365,8 @@ class _TransmissionVoltageTripleWidgetState
                     '송전\n전압',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: baseFont * 0.8,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 13 * 0.8,
+                      fontWeight: FontWeight.normal,
                       height: 1.3,
                     ),
                   ),
@@ -388,7 +387,7 @@ class _TransmissionVoltageTripleWidgetState
                     child: _simpleTransmissionRow(
                       label: label,
                       field: field,
-                      baseFont: baseFont,
+                      baseFont: 13,
                       overallIndex: overallIndex,
                     ),
                   );

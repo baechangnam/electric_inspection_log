@@ -82,7 +82,7 @@ class _TransmissionVoltageQuadWidgetState
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: baseFont,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.normal,
                 ),
               ),
             ),
@@ -109,7 +109,7 @@ class _TransmissionVoltageQuadWidgetState
                       : entry.judgment.label,
                   style: TextStyle(
                     fontSize: baseFont,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.normal,
                     color: entry.judgment == JudgmentOption.clear
                         ? Colors.grey
                         : Colors.black,
@@ -160,11 +160,12 @@ class _TransmissionVoltageQuadWidgetState
       builder: (ctx, constraints) {
         final totalH = constraints.maxHeight;
         final rowH = totalH / 4;
-        final baseFont = rowH * 0.55;
+        final baseFont = 13.0;
 
         final bool isCurrent = widget.tag == 1;
         final String genLabel = isCurrent ? '현재 발전량' : '전월 발전량';
         final String genInputTitle = '$genLabel 입력';
+        final bool disableCurrentInput = isCurrent; // 현재 발전량일 때만 비활성
 
         return Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -274,10 +275,10 @@ class _TransmissionVoltageQuadWidgetState
                             child: FittedBox(
                               fit: BoxFit.scaleDown,
                               child: Text(
-                                '발전설비',
+                                '발전\n설비',
                                 style: TextStyle(
-                                  fontSize: baseFont,
-                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.normal,
                                 ),
                               ),
                             ),
@@ -307,8 +308,8 @@ class _TransmissionVoltageQuadWidgetState
                                     entry.title,
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
-                                      fontSize: baseFont,
-                                      fontWeight: FontWeight.bold,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.normal,
                                     ),
                                   ),
                                 ),
@@ -365,7 +366,7 @@ class _TransmissionVoltageQuadWidgetState
                                           : entry.judgment.label,
                                       style: TextStyle(
                                         fontSize: baseFont,
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight: FontWeight.normal,
                                         color:
                                             entry.judgment ==
                                                 JudgmentOption.clear
@@ -594,50 +595,58 @@ class _TransmissionVoltageQuadWidgetState
                                   genLabel,
                                   style: TextStyle(
                                     fontSize: baseFont,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.normal,
                                   ),
                                 ),
                               ),
                             ),
                           ),
                           // 입력창
+                          // 입력창
                           Expanded(
                             flex: 4,
-                            child: GestureDetector(
-                              onTap: () => _showNumberInput(
-                                title: genInputTitle,
-                                currentValue: widget.entry.currentGenerationKwh,
-                                onValueChanged: (v) {
-                                  setState(
-                                    () => widget.entry.currentGenerationKwh = v,
-                                  );
-                                  widget.onLineChanged(
-                                    index: baseIndex + 0, // 12
-                                    left: widget.leftEntries[0],
-                                    middle: widget.middleEntries[0],
-                                    currentGeneration: v,
-                                    cumulativeGeneration: null,
-                                  );
-                                },
-                              ),
-                              behavior: HitTestBehavior.opaque, // ✅ 셀 전체가 터치되게
-                              child: Container(
-                                alignment: Alignment.centerRight, // ✅ 오른쪽 맞춤
-                                padding: const EdgeInsets.only(
-                                  right: 4,
-                                ), // 살짝 우측 여백
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  alignment: Alignment
-                                      .centerRight, // ✅ FittedBox도 우측 기준
-                                  child: Text(
-                                    widget.entry.currentGenerationKwh == 0
-                                        ? '-' // 0이면 기존대로 '-'
-                                        : formatThousandsDynamic(
-                                            widget.entry.currentGenerationKwh,
-                                          ),
-                                    textAlign: TextAlign.right, // ✅ 텍스트도 우측 정렬
-                                    style: TextStyle(fontSize: baseFont),
+                            child: AbsorbPointer(
+                              // ✅ 탭 차단
+                              absorbing: true, // 항상 터치 안되게
+                              child: GestureDetector(
+                                onTap: () => _showNumberInput(
+                                  title: genInputTitle,
+                                  currentValue:
+                                      widget.entry.currentGenerationKwh,
+                                  onValueChanged: (v) {
+                                    setState(
+                                      () =>
+                                          widget.entry.currentGenerationKwh = v,
+                                    );
+                                    widget.onLineChanged(
+                                      index: baseIndex + 0, // 12
+                                      left: widget.leftEntries[0],
+                                      middle: widget.middleEntries[0],
+                                      currentGeneration: v,
+                                      cumulativeGeneration: null,
+                                    );
+                                  },
+                                ),
+                                behavior: HitTestBehavior.opaque,
+                                child: Container(
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.only(right: 4),
+                                  color: Colors.white, // ✅ 항상 흰색 유지
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerRight,
+                                    child: Text(
+                                      widget.entry.currentGenerationKwh == 0
+                                          ? '-'
+                                          : formatThousandsDynamic(
+                                              widget.entry.currentGenerationKwh,
+                                            ),
+                                      textAlign: TextAlign.right,
+                                      style: TextStyle(
+                                        fontSize: baseFont,
+                                        color: Colors.black,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -651,7 +660,7 @@ class _TransmissionVoltageQuadWidgetState
                                 'KWH',
                                 style: TextStyle(
                                   fontSize: baseFont,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.normal,
                                 ),
                               ),
                             ),
@@ -683,7 +692,7 @@ class _TransmissionVoltageQuadWidgetState
                                   '누적 발전량',
                                   style: TextStyle(
                                     fontSize: baseFont,
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.normal,
                                   ),
                                 ),
                               ),
@@ -741,7 +750,7 @@ class _TransmissionVoltageQuadWidgetState
                                 'MWH',
                                 style: TextStyle(
                                   fontSize: baseFont,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.normal,
                                 ),
                               ),
                             ),

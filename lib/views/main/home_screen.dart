@@ -448,8 +448,9 @@ Future<BoardItem?> showConsumerDetailDialog({
               _InfoRow(label: '설비위치', value: item.facilityLocation),
               _InfoRow(label: '대표자', value: item.representativeName),
               _InfoRow(label: '전화번호', value: item.phoneNumber),
-              _InfoRow(label: '발전용량', value: item.generationCapacity),
-              _InfoRow(label: '태양광용량', value: item.solarCapacity),
+              _InfoRow(label: '수전 용량', value: _kw(item.incomingCapacity)),
+              _InfoRow(label: '발전용량', value: _kw(item.generationCapacity)),
+              _InfoRow(label: '태양광용량', value: _kw(item.solarCapacity)),
               _InfoRow(label: 'E-mail', value: item.email),
               const SizedBox(height: 12),
 
@@ -543,6 +544,16 @@ Future<BoardItem?> showConsumerDetailDialog({
       );
     },
   );
+}
+
+String _kw(dynamic v) {
+  final s = (v == null)
+      ? ''
+      : (v is num ? v.toString() : v.toString().trim());
+  if (s.isEmpty) return '-';
+
+  final t = s.replaceAll(RegExp(r'\s+'), ' ').trim();
+  return t.toLowerCase().endsWith('kw') ? t : '$t kW';
 }
 
 /// 간단한 정보 행 위젯

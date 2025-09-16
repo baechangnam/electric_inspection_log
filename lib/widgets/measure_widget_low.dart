@@ -100,7 +100,7 @@ class _GuidelineInputWidgetState extends State<GuidelineInputWidgetLow> {
         fit: BoxFit.scaleDown,
         child: Text(
           text,
-          style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.normal),
         ),
       ),
     ),
@@ -144,7 +144,7 @@ class _GuidelineInputWidgetState extends State<GuidelineInputWidgetLow> {
                     textAlign: ta,
                     style: TextStyle(
                       fontSize: fontSize,
-                      fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: bold ? FontWeight.normal : FontWeight.normal,
                     ),
                   ),
                 ),

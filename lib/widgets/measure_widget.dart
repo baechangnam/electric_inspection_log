@@ -86,7 +86,7 @@ class _GuidelineInputWidgetState extends State<GuidelineInputWidget> {
         fit: BoxFit.scaleDown,
         child: Text(
           text,
-          style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.normal),
         ),
       ),
     ),
@@ -131,7 +131,7 @@ class _GuidelineInputWidgetState extends State<GuidelineInputWidget> {
       child: LayoutBuilder(
         builder: (ctx, constraints) {
           final rowH = constraints.maxHeight / 2;
-          final fontSize = rowH * 0.6;
+          final fontSize = 13.0;
 
           return Column(
             children: [

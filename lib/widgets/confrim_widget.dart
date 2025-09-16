@@ -101,8 +101,14 @@ class _ConfirmationViewState extends State<ConfirmationView> {
                           );
                           return;
                         }
-                        Navigator.of(ctx).pop(); // 닫기
-                        widget.onSendEmail(); // 콜백 호출
+
+                        widget.inspectorController.text = nameCtrl.text;
+                        widget.onNameChanged?.call('점검 확인자', nameCtrl.text);
+                        setState(
+                          () => _inspectorSignature = null,
+                        ); // 이름 바꾸면 서명 초기화
+                        Navigator.of(ctx).pop();
+                        //widget.onSendEmail(); // 콜백 호출
                       },
                     ),
                   ),
@@ -161,12 +167,12 @@ class _ConfirmationViewState extends State<ConfirmationView> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(border: Border.fromBorderSide(_cellBorder)),
+      // decoration: BoxDecoration(border: Border.fromBorderSide(_cellBorder)),
       child: LayoutBuilder(
         builder: (context, constraints) {
           // 전체 높이를 3등분한 값에 0.55 비율을 곱해 baseFont 결정
           final rowH = constraints.maxHeight;
-          final baseFont = (rowH / 6) * 0.55;
+          final baseFont = 13.0;
 
           return Row(
             children: [
@@ -174,10 +180,7 @@ class _ConfirmationViewState extends State<ConfirmationView> {
               Expanded(
                 flex: 1,
                 child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.fromBorderSide(_cellBorder),
-                  ),
+                  decoration: BoxDecoration(color: Colors.white),
                   alignment: Alignment.center,
                   padding: const EdgeInsets.symmetric(horizontal: 32.0),
                   child: Image.asset(
@@ -309,7 +312,7 @@ class _ConfirmationViewState extends State<ConfirmationView> {
             alignment: Alignment.center,
             child: Text(
               label,
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: baseFont),
+              style: TextStyle(fontWeight: FontWeight.normal, fontSize: 13),
             ),
           ),
         ),

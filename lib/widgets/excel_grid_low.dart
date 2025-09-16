@@ -755,7 +755,8 @@ class _ExcelGridState extends State<ExcelGridLow> {
       },
     );
   }
-    bool _hasValidEmail() =>
+
+  bool _hasValidEmail() =>
       _selectedEmail.isNotEmpty && _isValidEmail(_selectedEmail);
 
   Future<void> _confirmAndSend() async {
@@ -984,20 +985,28 @@ class _ExcelGridState extends State<ExcelGridLow> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+       appBar: AppBar(
         title: const Text('저압 점검일지 등록'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.send),
-            tooltip: '전송하기',
-            onPressed: _confirmAndSend, // 제가 만들어드린 함수 연결
+          Padding(
+            padding: const EdgeInsets.only(right: 8), // 선택
+            child: IconButton(
+              icon: const Icon(Icons.send),
+              tooltip: '전송하기',
+              onPressed: _confirmAndSend,
+              // ✅ 터치 타겟 확대
+              constraints: const BoxConstraints(minWidth: 56, minHeight: 56),
+              padding: const EdgeInsets.all(12), // 아이콘은 그대로, 히트박스만 큼
+              splashRadius: 28, // 터치 이펙트 반경
+              iconSize: 24, // 필요 시 아이콘 크기
+            ),
           ),
         ],
       ),
       body: RepaintBoundary(
         key: _exportKey,
         child: Container(
-          padding: const EdgeInsets.all(16.0), // ← 여백을 RepaintBoundary 내부에 포함
+            padding: const EdgeInsets.only(left: 24, right: 24, top: 8, bottom: 24),
           color: Colors.white, // 캡처시 배경색 유지 (투명 방지)
           child: Column(
             children: [
@@ -1016,28 +1025,22 @@ class _ExcelGridState extends State<ExcelGridLow> {
                         // 1-2) C3~R4 (인덱스 row 2~3, col 2~17) 병합
                         Positioned(
                           left: 2 * cellW,
-                          top: 1 * cellH,
+                          top: 2.5 * cellH,
                           width: 16 * cellW,
-                          height: 3 * cellH,
+                          height: 2 * cellH,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 25.0,
                               vertical: 2.0,
                             ),
                             alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: Border.all(
-                                color: Colors.grey.shade300,
-                                width: 0.5,
-                              ),
-                            ),
+                            decoration: BoxDecoration(color: Colors.white),
                             child: FittedBox(
                               fit: BoxFit.scaleDown,
                               child: Text(
                                 '전기설비 점검결과 통지서(저압용)',
                                 style: TextStyle(
-                                  fontSize: 50, // 크게 잡아두면…
+                                  fontSize: 22, //
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -1048,7 +1051,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
                         // 1-3) T2~T4 (인덱스 row 1~3, col 19) 병합
                         Positioned(
                           left: 21 * cellW,
-                          top: 1 * cellH,
+                          top: 2.5 * cellH,
                           width: cellW,
                           height: 3 * cellH,
                           child: Container(
@@ -1059,9 +1062,8 @@ class _ExcelGridState extends State<ExcelGridLow> {
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              border: Border.all(
-                                color: Colors.grey.shade300,
-                                width: 0.5,
+                              border: Border.fromBorderSide(
+                                BorderSide(color: Colors.black, width: 1),
                               ),
                             ),
                             child: FittedBox(
@@ -1069,7 +1071,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
                               child: Text(
                                 '결\n재',
                                 style: TextStyle(
-                                  fontSize: 18, // 크게 잡아두면…
+                                  fontSize: 15, // 크게 잡아두면…
                                   fontWeight: FontWeight.normal,
                                 ),
                               ),
@@ -1080,16 +1082,20 @@ class _ExcelGridState extends State<ExcelGridLow> {
                         // 3) U2~W2 (row1, col20~22) – 담당
                         Positioned(
                           left: 22 * cellW,
-                          top: 1 * cellH,
+                          top: 2.5 * cellH,
                           width: 3 * cellW,
                           height: cellH,
                           child: Container(
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              border: Border.all(
-                                color: Colors.grey.shade300,
-                                width: 0.5,
+                              border: Border(
+                                top: BorderSide(color: Colors.black, width: 1),
+                                right: BorderSide(
+                                  color: Colors.black,
+                                  width: 1,
+                                ),
+                                // bottom 없음 → 아래 박스 top이 대신 그림
                               ),
                             ),
                             child: FittedBox(
@@ -1097,7 +1103,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
                               child: Text(
                                 '담당',
                                 style: TextStyle(
-                                  fontSize: 20, // 크게 잡아두면…
+                                  fontSize: 15, // 크게 잡아두면…
                                   fontWeight: FontWeight.normal,
                                 ),
                               ),
@@ -1108,15 +1114,25 @@ class _ExcelGridState extends State<ExcelGridLow> {
                         // 4) U3~W4 (row2~3, col20~22) – 빈칸 덮기
                         Positioned(
                           left: 22 * cellW,
-                          top: 2 * cellH,
+                          top: 3.5 * cellH,
                           width: 3 * cellW,
                           height: 2 * cellH,
                           child: Container(
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              border: Border.all(
-                                color: Colors.grey.shade300,
-                                width: 0.5,
+                              border: Border(
+                                top: BorderSide(
+                                  color: Colors.black,
+                                  width: 1,
+                                ), // ↑ 이 선이 담당 밑줄 역할
+                                right: BorderSide(
+                                  color: Colors.black,
+                                  width: 1,
+                                ),
+                                bottom: BorderSide(
+                                  color: Colors.black,
+                                  width: 1,
+                                ),
                               ),
                             ),
                           ),
@@ -1125,16 +1141,20 @@ class _ExcelGridState extends State<ExcelGridLow> {
                         // 5) X2~Z2 (row1, col23~25) – 팀장
                         Positioned(
                           left: 25 * cellW,
-                          top: 1 * cellH,
+                          top: 2.5 * cellH,
                           width: 3 * cellW,
                           height: cellH,
                           child: Container(
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              border: Border.all(
-                                color: Colors.grey.shade300,
-                                width: 0.5,
+                              border: Border(
+                                top: BorderSide(color: Colors.black, width: 1),
+                                right: BorderSide(
+                                  color: Colors.black,
+                                  width: 1,
+                                ),
+                                // left/bottom 없음 (bottom은 아래 큰 박스 top이 담당)
                               ),
                             ),
                             child: FittedBox(
@@ -1142,7 +1162,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
                               child: Text(
                                 '팀장',
                                 style: TextStyle(
-                                  fontSize: 20, // 크게 잡아두면…
+                                  fontSize: 15, // 크게 잡아두면…
                                   fontWeight: FontWeight.normal,
                                 ),
                               ),
@@ -1150,19 +1170,25 @@ class _ExcelGridState extends State<ExcelGridLow> {
                           ),
                         ),
 
-                        // 6) X3~Z4 (row2~3, col23~25) – 빈칸 덮기
-                        // X3~Z4 (row2~3, col23~25) – 빈칸 덮기
                         Positioned(
                           left: 25 * cellW,
-                          top: 2 * cellH,
+                          top: 3.5 * cellH,
                           width: 3 * cellW,
                           height: 2 * cellH,
                           child: Container(
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              border: Border.all(
-                                color: Colors.grey.shade300,
-                                width: 0.5,
+                              border: Border(
+                                top: BorderSide(color: Colors.black, width: 1),
+                                right: BorderSide(
+                                  color: Colors.black,
+                                  width: 1,
+                                ),
+                                bottom: BorderSide(
+                                  color: Colors.black,
+                                  width: 1,
+                                ),
+                                // left 없음  ← 여기서가 포인트! (겹침 방지)
                               ),
                             ),
                           ),
@@ -1175,7 +1201,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
               ),
 
               Expanded(
-                flex: 2,
+                flex: 1,
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final cellW = constraints.maxWidth / columns;
@@ -1186,16 +1212,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
                     return Stack(
                       children: [
                         // 기본 28셀 그리드
-                        Row(
-                          children: List.generate(columns, (_) {
-                            return Container(
-                              width: cellW,
-                              height: cellH,
-                              decoration: BoxDecoration(border: border),
-                            );
-                          }),
-                        ),
-
+                      
                         // A~B : 고객명(상호) 병합
                         Positioned(
                           left: 0,
@@ -1214,11 +1231,14 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 border: border,
                               ),
 
-                              child: Text(
-                                '고객명(상호)',
-                                style: TextStyle(
-                                  fontSize: baseFont / 2.2,
-                                  fontWeight: FontWeight.bold,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '고객명(상호)',
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),
@@ -1242,11 +1262,18 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 color: Colors.white,
                                 border: border,
                               ),
-                              child: Text(
-                                _selectedConsumer.isEmpty
-                                    ? '수용가 선택'
-                                    : _selectedConsumer,
-                                style: TextStyle(fontSize: baseFont / 2),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  _selectedConsumer.isEmpty
+                                      ? '수용가 선택'
+                                      : _selectedConsumer,
+                                  maxLines: 2,
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1266,9 +1293,15 @@ class _ExcelGridState extends State<ExcelGridLow> {
                               border: border,
                             ),
 
-                            child: Text(
-                              '귀중',
-                              style: TextStyle(fontSize: baseFont / 2),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '귀중',
+                                style: TextStyle(
+                                  fontSize: 13, // 크게 잡아두면…
+                                  fontWeight: FontWeight.normal,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -1287,10 +1320,16 @@ class _ExcelGridState extends State<ExcelGridLow> {
                               border: border,
                             ),
 
-                            child: Text(
-                              formattedDate,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: baseFont / 2),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                formattedDate,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 13, // 크게 잡아두면…
+                                  fontWeight: FontWeight.normal,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -1309,9 +1348,15 @@ class _ExcelGridState extends State<ExcelGridLow> {
                               border: border,
                             ),
 
-                            child: Text(
-                              '일기',
-                              style: TextStyle(fontSize: baseFont / 2),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '일기',
+                                style: TextStyle(
+                                  fontSize: 13, // 크게 잡아두면…
+                                  fontWeight: FontWeight.normal,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -1334,12 +1379,18 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 border: border,
                               ),
 
-                              child: Text(
-                                _selectedWeather.isEmpty
-                                    ? '선택'
-                                    : _selectedWeather,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(fontSize: baseFont / 2),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  _selectedWeather.isEmpty
+                                      ? '선택'
+                                      : _selectedWeather,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1350,6 +1401,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
                 ),
               ),
 
+              // 9~10행 (두 행을 합친 영역)
               // 9~10행 (두 행을 합친 영역)
               Expanded(
                 flex: 2,
@@ -1363,7 +1415,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
                       color: Colors.grey.shade300,
                       width: 0.5,
                     );
-                    final baseFont = rowH * 0.6;
+                    final baseFont = rowH * 0.5;
 
                     return Container(
                       decoration: BoxDecoration(
@@ -1402,7 +1454,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
                           Positioned(
                             left: 0,
                             top: 0,
-                            width: 2 * cellW,
+                            width: 3 * cellW,
                             height: 2 * rowH,
                             child: Container(
                               alignment: Alignment.center,
@@ -1414,11 +1466,15 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 border: border,
                               ),
 
-                              child: Text(
-                                '계약\n용량',
-                                style: TextStyle(
-                                  fontSize: baseFont,
-                                  fontWeight: FontWeight.bold,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '계약\n용량',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),
@@ -1426,9 +1482,9 @@ class _ExcelGridState extends State<ExcelGridLow> {
 
                           // 9행 C~E: 수전 (top row)
                           Positioned(
-                            left: 2 * cellW,
+                            left: 3 * cellW,
                             top: 0,
-                            width: 3 * cellW,
+                            width: 2 * cellW,
                             height: rowH,
                             child: Container(
                               alignment: Alignment.center,
@@ -1437,18 +1493,25 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 border: border,
                               ),
 
-                              child: Text(
-                                '수전',
-                                style: TextStyle(fontSize: baseFont),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '수전',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
 
                           // 10행 C~E: 발전 (bottom row)
                           Positioned(
-                            left: 2 * cellW,
+                            left: 3 * cellW,
                             top: rowH,
-                            width: 3 * cellW,
+                            width: 2 * cellW,
                             height: rowH,
                             child: Container(
                               alignment: Alignment.center,
@@ -1457,9 +1520,16 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 border: border,
                               ),
 
-                              child: Text(
-                                '발전',
-                                style: TextStyle(fontSize: baseFont),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '발전',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1479,10 +1549,16 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 color: Colors.white,
                                 border: border,
                               ),
-                              child: Text(
-                                formatCapacity(incomingCapacity), // 포맷 적용
-                                textAlign: TextAlign.right,
-                                style: TextStyle(fontSize: baseFont),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  formatCapacity(incomingCapacity), // 포맷 적용
+                                  textAlign: TextAlign.right,
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1502,10 +1578,16 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 color: Colors.white,
                                 border: border,
                               ),
-                              child: Text(
-                                formatCapacity(generationCapacity), // 포맷 적용
-                                textAlign: TextAlign.right,
-                                style: TextStyle(fontSize: baseFont),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  formatCapacity(generationCapacity), // 포맷 적용
+                                  textAlign: TextAlign.right,
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1523,9 +1605,16 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 border: border,
                               ),
 
-                              child: Text(
-                                'KW',
-                                style: TextStyle(fontSize: baseFont * 0.8),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  'KW',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1543,9 +1632,16 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 border: border,
                               ),
 
-                              child: Text(
-                                'KW',
-                                style: TextStyle(fontSize: baseFont * 0.8),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  'KW',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1565,10 +1661,15 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 color: Colors.white,
                                 border: border,
                               ),
-
-                              child: Text(
-                                incomingPrimaryVoltage,
-                                style: TextStyle(fontSize: baseFont),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  incomingPrimaryVoltage,
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1589,9 +1690,15 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 border: border,
                               ),
 
-                              child: Text(
-                                generationPrimaryVoltage,
-                                style: TextStyle(fontSize: baseFont),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  generationPrimaryVoltage,
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1609,9 +1716,15 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 border: border,
                               ),
 
-                              child: Text(
-                                '/',
-                                style: TextStyle(fontSize: baseFont),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '/',
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1629,9 +1742,15 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 border: border,
                               ),
 
-                              child: Text(
-                                '/',
-                                style: TextStyle(fontSize: baseFont),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '/',
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1652,9 +1771,15 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 border: border,
                               ),
 
-                              child: Text(
-                                incomingSecondaryVoltage,
-                                style: TextStyle(fontSize: baseFont),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  incomingSecondaryVoltage,
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1674,10 +1799,15 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 color: Colors.white,
                                 border: border,
                               ),
-
-                              child: Text(
-                                generationSecondaryVoltage,
-                                style: TextStyle(fontSize: baseFont),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  generationSecondaryVoltage,
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1700,7 +1830,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 fit: BoxFit.scaleDown,
                                 child: Text(
                                   'V',
-                                  style: TextStyle(fontSize: baseFont * 0.8),
+                                  style: TextStyle(fontSize: 13),
                                 ),
                               ),
                             ),
@@ -1720,9 +1850,12 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 border: border,
                               ),
 
-                              child: Text(
-                                'V',
-                                style: TextStyle(fontSize: baseFont * 0.8),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  'V',
+                                  style: TextStyle(fontSize: 13),
+                                ),
                               ),
                             ),
                           ),
@@ -1740,41 +1873,21 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 border: border,
                               ),
 
-                              child: Text(
-                                '태양광\n설비',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: baseFont,
-                                  fontWeight: FontWeight.bold,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '태양광\n설비',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
 
                           // 9행 Q~R: solar_capacity
-                          Positioned(
-                            left: 16 * cellW,
-                            top: 0,
-                            width: 3 * cellW,
-                            height: rowH,
-                            child: Container(
-                              alignment: Alignment.center,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                border: border,
-                              ),
-
-                              child: Text(
-                                solarCapacity,
-                                style: TextStyle(fontSize: baseFont),
-                              ),
-                            ),
-                          ),
-
-                          // 10행 Q~R: solar_voltage
                           Positioned(
                             left: 16 * cellW,
                             top: 0,
@@ -1789,12 +1902,50 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 color: Colors.white,
                                 border: border,
                               ),
-                              child: Text(
-                                formatCapacity(
-                                  solarCapacity,
-                                ), // ← 포맷 적용 (천단위/소수/0→'_')
-                                textAlign: TextAlign.right,
-                                style: TextStyle(fontSize: baseFont),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  formatCapacity(
+                                    solarCapacity,
+                                  ), // ← 포맷 적용 (천단위/소수/0→'_')
+                                  textAlign: TextAlign.right,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          // 10행 Q~R: solar_voltage
+                          Positioned(
+                            left: 16 * cellW,
+                            top: rowH,
+                            width: 3 * cellW,
+                            height: rowH,
+                            child: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  formatCapacity(
+                                    solarVoltage,
+                                  ), // ← 포맷 적용 (천단위/소수/0→'_')
+                                  textAlign: TextAlign.right,
+
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1812,9 +1963,16 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 border: border,
                               ),
 
-                              child: Text(
-                                'KW',
-                                style: TextStyle(fontSize: baseFont * 0.8),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  'KW',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1832,9 +1990,16 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 border: border,
                               ),
 
-                              child: Text(
-                                'V',
-                                style: TextStyle(fontSize: baseFont * 0.8),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  'V',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1852,17 +2017,20 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 border: border,
                               ),
 
-                              child: Text(
-                                '합계',
-                                style: TextStyle(
-                                  fontSize: baseFont,
-                                  fontWeight: FontWeight.bold,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '합계',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
 
-                          // V~Y: 빈칸 (두 행)
                           Positioned(
                             left: 22 * cellW,
                             top: 0,
@@ -1877,18 +2045,22 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 color: Colors.white,
                                 border: border,
                               ),
-                              child: Text(
-                                formatCapacity(
-                                  sumText,
-                                ), // ← 포맷 적용 (천단위 / 소수점 둘째자리 / 0→'_')
-                                textAlign: TextAlign.right,
-                                style: TextStyle(
-                                  fontSize: baseFont,
-                                  fontWeight: FontWeight.bold,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  formatCapacity(
+                                    sumText,
+                                  ), // ← 포맷 적용 (천단위 / 소수점 둘째자리 / 0→'_')
+                                  textAlign: TextAlign.right,
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.normal,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
+
                           // Z~AB: KW (두 행)
                           Positioned(
                             left: 26 * cellW,
@@ -1902,9 +2074,15 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 border: border,
                               ),
 
-                              child: Text(
-                                'KW',
-                                style: TextStyle(fontSize: baseFont * 0.8),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  'KW',
+                                  style: TextStyle(
+                                    fontSize: 13, // 크게 잡아두면…
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -1916,7 +2094,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
               ),
 
               // 11행 빈칸 (한 행)
-              Expanded(flex: 1, child: const BlankRow()),
+              const SizedBox(height: 8),
 
               Expanded(
                 flex: 5, // 5행 분량
@@ -1979,13 +2157,15 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 border: border,
                               ),
                               child: Center(
-                                child: Text(
-                                  '안\n전\n교\n육',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: baseFont * 1.2,
-                                    fontWeight: FontWeight.bold,
-                                    height: 1.4, // 줄간격을 1.4배로 늘림
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    '안\n전\n교\n육',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 13, // 크게 잡아두면…
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -2008,12 +2188,16 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                   color: Colors.white,
                                   border: border,
                                 ),
+
                                 child: FittedBox(
                                   fit: BoxFit.scaleDown,
-                                  alignment: Alignment.centerLeft,
                                   child: Text(
                                     safetyTexts[i],
-                                    style: TextStyle(fontSize: baseFont),
+
+                                    style: TextStyle(
+                                      fontSize: 10, // 크게 잡아두면…
+                                      fontWeight: FontWeight.normal,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -2026,9 +2210,9 @@ class _ExcelGridState extends State<ExcelGridLow> {
               ),
 
               // 17행 빈칸 (한 행)
-              Expanded(flex: 1, child: const BlankRow()),
+             const SizedBox(height: 8),
 
-              // 18행: 점검내역 (판정 : 양, 부)
+                // 18행: 점검내역 (판정 : 양, 부)
               Expanded(
                 flex: 1,
                 child: LayoutBuilder(
@@ -2057,20 +2241,15 @@ class _ExcelGridState extends State<ExcelGridLow> {
                             padding: const EdgeInsets.symmetric(horizontal: 8),
                             alignment: Alignment.centerLeft,
                             decoration: BoxDecoration(),
-                            child: RichText(
-                              text: TextSpan(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '점검내역(판정 : O, △ , X , 양, 부) 해당없음',
+
                                 style: TextStyle(
-                                  fontSize: baseFont,
-                                  color: Colors.black,
+                                  fontSize: 13, // 크게 잡아두면…
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                children: const [
-                                  TextSpan(
-                                    text: '점검내역(판정 : 양, 부)',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
                               ),
                             ),
                           ),
@@ -2089,7 +2268,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
                   ),
                   child: Column(
                     children: [
-                      Expanded(
+                     Expanded(
                         flex: 1,
                         child: LayoutBuilder(
                           builder: (context, constraints) {
@@ -2137,23 +2316,35 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                     children: [
                                       Expanded(
                                         flex: 4,
-                                        child: cell(
+                                        child: Text(
                                           '저 압 설 비',
-                                          weight: FontWeight.bold,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
                                         ),
                                       ),
                                       Expanded(
                                         flex: 2,
-                                        child: cell(
+                                        child: Text(
                                           '판정',
-                                          weight: FontWeight.bold,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
                                         ),
                                       ),
                                       Expanded(
                                         flex: 3,
-                                        child: cell(
+                                        child: Text(
                                           '비고',
-                                          weight: FontWeight.bold,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
                                         ),
                                       ),
                                     ],
@@ -2166,23 +2357,35 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                     children: [
                                       Expanded(
                                         flex: 4,
-                                        child: cell(
+                                        child: Text(
                                           '특고(고압)설비',
-                                          weight: FontWeight.bold,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
                                         ),
                                       ),
                                       Expanded(
                                         flex: 2,
-                                        child: cell(
+                                        child: Text(
                                           '판정',
-                                          weight: FontWeight.bold,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
                                         ),
                                       ),
                                       Expanded(
                                         flex: 3,
-                                        child: cell(
+                                        child: Text(
                                           '비고',
-                                          weight: FontWeight.bold,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
                                         ),
                                       ),
                                     ],
@@ -2195,23 +2398,36 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                     children: [
                                       Expanded(
                                         flex: 5,
-                                        child: cell(
-                                          '태양광설비', // 세로로 배치하고 싶다면 줄바꿈
-                                          weight: FontWeight.bold,
+                                        child: Text(
+                                          '태양광설비',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
                                         ),
                                       ),
+
                                       Expanded(
                                         flex: 2,
-                                        child: cell(
+                                        child: Text(
                                           '판정',
-                                          weight: FontWeight.bold,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
                                         ),
                                       ),
                                       Expanded(
                                         flex: 3,
-                                        child: cell(
+                                        child: Text(
                                           '비고',
-                                          weight: FontWeight.bold,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
                                         ),
                                       ),
                                     ],
@@ -2390,7 +2606,8 @@ class _ExcelGridState extends State<ExcelGridLow> {
                 ),
               ),
 
-              Expanded(flex: 1, child: const BlankRow()),
+              const SizedBox(height: 8),
+
 
               Expanded(
                 flex: 1,
@@ -2400,7 +2617,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
                     final rowH = constraints.maxHeight;
                     final cellW = totalW / 28;
 
-                    final baseFont = rowH * 0.55;
+              
 
                     return Stack(
                       children: [
@@ -2423,7 +2640,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
                             child: RichText(
                               text: TextSpan(
                                 style: TextStyle(
-                                  fontSize: baseFont,
+                                  fontSize: 13,
                                   color: Colors.black,
                                 ),
                                 children: const [
@@ -2578,7 +2795,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                             child: Text(
                                               text,
                                               style: TextStyle(
-                                                fontSize: baseFont * 0.7,
+                                                fontSize: 12,
                                               ),
                                               maxLines: 4,
                                               overflow: TextOverflow.visible,
@@ -2683,10 +2900,9 @@ class _ExcelGridState extends State<ExcelGridLow> {
                 ),
               ),
 
-              Expanded(flex: 1, child: const BlankRow()),
-
+             const SizedBox(height: 8),
               Expanded(
-                flex: 6, // 필요에 맞게 1~3 사이로 조절
+                flex: 5, // 필요에 맞게 1~3 사이로 조절
 
                 child: ConfirmationView(
                   key: ValueKey('confirm-${hvLogEntry.selectedBoardId}'),
@@ -2694,7 +2910,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
                   managerMainController: _managerMainController,
                   managerSubController: _managerSubController,
                   onSendEmail: _onSendEmail,
-                     customerEmail: _selectedEmail,
+                  customerEmail: _selectedEmail,
 
                   // ⬇️ 이미 저장된 서명을 내려보내 화면에 보여주기
                   initialManagerMainSignature: hvLogEntry.managerMainSignature,

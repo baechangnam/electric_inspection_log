@@ -64,7 +64,7 @@ class _MeasurementPowerWidgetState extends State<MeasurementPowerWidget> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: fontSize,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.normal,
                   ),
                 ),
            
@@ -103,7 +103,7 @@ class _MeasurementPowerWidgetState extends State<MeasurementPowerWidget> {
                   unit,
                   style: TextStyle(
                     fontSize: fontSize,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.normal,
                   ),
                 ),
              
@@ -119,7 +119,7 @@ class _MeasurementPowerWidgetState extends State<MeasurementPowerWidget> {
     return LayoutBuilder(builder: (ctx, constraints) {
       final totalH = constraints.maxHeight;
       final rowH = totalH / 2;
-      final baseFont = rowH * 0.55;
+      final baseFont = 13.0;
       final cellDecor = BoxDecoration(
         color: Colors.white,
         border: Border.all(color: Colors.grey.shade300, width: 0.5),
@@ -218,7 +218,7 @@ class _MeasurementPowerWidgetState extends State<MeasurementPowerWidget> {
                 _buildCell(
                   '배율',
                   widget.entry.powerRatio,
-                  '%',
+                  '',
                   '배율 입력',
                   (v) {
                     widget.entry.powerRatio = v;
