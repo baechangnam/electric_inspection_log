@@ -131,7 +131,7 @@ class _GuidelineInputWidgetState extends State<GuidelineInputWidget> {
       child: LayoutBuilder(
         builder: (ctx, constraints) {
           final rowH = constraints.maxHeight / 2;
-          final fontSize = 13.0;
+          final fontSize = 8.0;
 
           return Column(
             children: [

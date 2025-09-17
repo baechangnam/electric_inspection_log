@@ -97,7 +97,7 @@ class _InspectionLineWidgetState extends State<InspectionLineWidget> {
                   style: TextStyle(
                     fontWeight: FontWeight.normal,
                      
-                    fontSize: 13,
+                    fontSize: 8,
                
                 ),
               ),
@@ -137,7 +137,7 @@ class _InspectionLineWidgetState extends State<InspectionLineWidget> {
                         ? ''
                         : entry.judgment.label,
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 8,
                       fontWeight: FontWeight.normal,
                       color: entry.judgment == JudgmentOption.clear
                           ? Colors.grey
@@ -166,7 +166,7 @@ class _InspectionLineWidgetState extends State<InspectionLineWidget> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 8,
                     fontStyle: entry.remark.isEmpty
                         ? FontStyle.italic
                         : FontStyle.normal,

@@ -77,7 +77,7 @@ class _TransmissionVoltageDoubleWidgetState
                 entry.title,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 8,
                   fontWeight: FontWeight.normal,
                 ),
               ),
@@ -104,7 +104,7 @@ class _TransmissionVoltageDoubleWidgetState
                       ? ''
                       : entry.judgment.label,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 8,
                     fontWeight: FontWeight.normal,
                     color: entry.judgment == JudgmentOption.clear
                         ? Colors.grey
@@ -135,7 +135,7 @@ class _TransmissionVoltageDoubleWidgetState
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 8,
                     fontStyle: entry.remark.isEmpty
                         ? FontStyle.italic
                         : FontStyle.normal,
@@ -326,7 +326,7 @@ class _TransmissionVoltageDoubleWidgetState
                           'P.V 전압\n(DC)',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 8,
                             fontWeight: FontWeight.normal,
                             height: 1.2,
                           ),
@@ -349,7 +349,7 @@ class _TransmissionVoltageDoubleWidgetState
       child: Text(
         widget.entry.pvVoltage == 0 ? '-' : widget.entry.pvVoltage.toStringAsFixed(0),
         textAlign: TextAlign.right, // 👉 Text 자체도 오른쪽 정렬
-        style: TextStyle(fontSize: 13),
+        style: TextStyle(fontSize: 9),
       ),
     ),
   ),
@@ -362,7 +362,7 @@ class _TransmissionVoltageDoubleWidgetState
                       child: Text(
                         'V',
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 8,
                           fontWeight: FontWeight.normal,
                         ),
                       ),

@@ -172,7 +172,7 @@ class _ConfirmationViewState extends State<ConfirmationView> {
         builder: (context, constraints) {
           // 전체 높이를 3등분한 값에 0.55 비율을 곱해 baseFont 결정
           final rowH = constraints.maxHeight;
-          final baseFont = 13.0;
+          final baseFont = 8.0;
 
           return Row(
             children: [
@@ -210,7 +210,7 @@ class _ConfirmationViewState extends State<ConfirmationView> {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: baseFont,
+                            fontSize: 9,
                           ),
                         ),
                       ),
@@ -303,7 +303,7 @@ class _ConfirmationViewState extends State<ConfirmationView> {
       children: [
         // 라벨 셀
         Expanded(
-          flex: 3,
+          flex: 2,
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -312,7 +312,7 @@ class _ConfirmationViewState extends State<ConfirmationView> {
             alignment: Alignment.center,
             child: Text(
               label,
-              style: TextStyle(fontWeight: FontWeight.normal, fontSize: 13),
+              style: TextStyle(fontWeight: FontWeight.normal, fontSize: 8),
             ),
           ),
         ),
@@ -407,10 +407,24 @@ class _ConfirmationViewState extends State<ConfirmationView> {
                 border: Border.fromBorderSide(_cellBorder),
               ),
               alignment: Alignment.center,
-              child: signature != null
-                  ? SizedBox.expand(
-                      child: Image.memory(signature, fit: BoxFit.fill),
-                    )
+             child: signature != null
+    ? LayoutBuilder(
+        builder: (context, c) {
+          final dpr = MediaQuery.of(context).devicePixelRatio;
+          final targetW = (c.maxWidth * dpr).round();
+          final targetH = (c.maxHeight * dpr).round();
+
+          return Center(
+            child: Image.memory(
+              signature,
+              fit: BoxFit.contain,               // ✅ 비율 유지
+              filterQuality: FilterQuality.high, // ✅ 고화질 스케일링
+              cacheWidth: targetW,               // ✅ 디코더에 크기 힌트
+              cacheHeight: targetH,
+            ),
+          );
+        },
+      )
                   : Text(
                       actionLabel, // '메일발송' 또는 '(인)'
                       style: TextStyle(

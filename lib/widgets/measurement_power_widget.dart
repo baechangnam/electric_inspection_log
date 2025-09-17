@@ -53,7 +53,7 @@ class _MeasurementPowerWidgetState extends State<MeasurementPowerWidget> {
         children: [
           // 레이블 3
           Expanded(
-            flex: 3,
+            flex: 4,
             child: Container(
               decoration: decoration,
               alignment: Alignment.center,
@@ -119,7 +119,7 @@ class _MeasurementPowerWidgetState extends State<MeasurementPowerWidget> {
     return LayoutBuilder(builder: (ctx, constraints) {
       final totalH = constraints.maxHeight;
       final rowH = totalH / 2;
-      final baseFont = 13.0;
+      final baseFont = 8.0;
       final cellDecor = BoxDecoration(
         color: Colors.white,
         border: Border.all(color: Colors.grey.shade300, width: 0.5),

@@ -119,7 +119,7 @@ class _GuidelineInputWidgetState extends State<GuidelineInputWidgetLow> {
       child: LayoutBuilder(
         builder: (ctx, constraints) {
           final rowH = constraints.maxHeight; // 한 줄 뷰니까 전체 높이 = 한 행
-          final fontSize = rowH * 0.5;
+          final fontSize = 8.0;
 
           // 셀 빌더
           Widget _label(

@@ -160,7 +160,7 @@ class _TransmissionVoltageQuadWidgetState
       builder: (ctx, constraints) {
         final totalH = constraints.maxHeight;
         final rowH = totalH / 4;
-        final baseFont = 13.0;
+        final baseFont = 8.0;
 
         final bool isCurrent = widget.tag == 1;
         final String genLabel = isCurrent ? '현재 발전량' : '전월 발전량';
@@ -277,7 +277,7 @@ class _TransmissionVoltageQuadWidgetState
                               child: Text(
                                 '발전\n설비',
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: 8,
                                   fontWeight: FontWeight.normal,
                                 ),
                               ),
@@ -308,7 +308,7 @@ class _TransmissionVoltageQuadWidgetState
                                     entry.title,
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 8,
                                       fontWeight: FontWeight.normal,
                                     ),
                                   ),

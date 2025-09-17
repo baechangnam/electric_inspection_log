@@ -111,7 +111,7 @@ class _TransmissionVoltageTripleWidgetState
             child: Text(
               entry.title,
               textAlign: TextAlign.center,
-              style: TextStyle(fontWeight: FontWeight.normal, fontSize: 13),
+              style: TextStyle(fontWeight: FontWeight.normal, fontSize: 8),
             ),
           ),
         ),
@@ -147,7 +147,7 @@ class _TransmissionVoltageTripleWidgetState
                       ? ''
                       : entry.judgment.label,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 8,
                     fontWeight: FontWeight.normal,
                     color: entry.judgment == JudgmentOption.clear
                         ? Colors.grey
@@ -184,7 +184,7 @@ class _TransmissionVoltageTripleWidgetState
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 8,
                     fontStyle: entry.remark.isEmpty
                         ? FontStyle.italic
                         : FontStyle.normal,
@@ -249,7 +249,7 @@ class _TransmissionVoltageTripleWidgetState
             alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(horizontal: 2),
           
-            child: Text(label, style: TextStyle(fontSize: baseFont * 0.9)),
+            child: Text(label, style: TextStyle(fontSize:8)),
           ),
         ),
         Expanded(
@@ -266,16 +266,15 @@ class _TransmissionVoltageTripleWidgetState
                   bottom: BorderSide(color: Colors.grey.shade300, width: 0.5),
                 ),
               ),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
+           
                 child: Text(
                   value == 0 ? '-' : value.toStringAsFixed(0),
                   style: TextStyle(
-                    fontSize: baseFont,
+                    fontSize: 8,
                     fontWeight: FontWeight.normal,
                   ),
                 ),
-              ),
+          
             ),
           ),
         ),
@@ -365,7 +364,7 @@ class _TransmissionVoltageTripleWidgetState
                     '송전\n전압',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 13 * 0.8,
+                      fontSize: 8,
                       fontWeight: FontWeight.normal,
                       height: 1.3,
                     ),
@@ -387,7 +386,7 @@ class _TransmissionVoltageTripleWidgetState
                     child: _simpleTransmissionRow(
                       label: label,
                       field: field,
-                      baseFont: 13,
+                      baseFont: 8,
                       overallIndex: overallIndex,
                     ),
                   );
