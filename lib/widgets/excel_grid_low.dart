@@ -2795,7 +2795,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
 
              const SizedBox(height: 8),
               Expanded(
-                flex: 3, // 필요에 맞게 1~3 사이로 조절
+                flex: 4, // 필요에 맞게 1~3 사이로 조절
 
                 child: ConfirmationView(
                   key: ValueKey('confirm-${hvLogEntry.selectedBoardId}'),
