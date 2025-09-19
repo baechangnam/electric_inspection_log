@@ -204,7 +204,7 @@ class _GuidelineInputWidgetState extends State<GuidelineInputWidgetLow> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // 레이아웃: 3 : 1 : 3 : 1 : 3 : 1 : 3 : 1  (총 16)
-                _label('한전지침', flex: 3),
+                _label('계량기 지침', flex: 3),
                 _label('전일 ⑤', flex: 1),
                 _valueCell(
                   value: widget.entry.guidelineLowPre5,

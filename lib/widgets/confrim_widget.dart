@@ -13,6 +13,7 @@ class ConfirmationView extends StatefulWidget {
 
   final void Function(String fieldName, String value)? onNameChanged;
   final String? customerEmail; // ⬅️ 추가
+  final String? mainName;
 
   /// 메일 발송 콜백
   final VoidCallback onSendEmail;
@@ -27,7 +28,8 @@ class ConfirmationView extends StatefulWidget {
     this.initialManagerMainSignature,
     this.initialManagerSubSignature,
     this.onSignatureChanged,
-    this.customerEmail, // ⬅️ 추가
+    this.customerEmail,
+    this.mainName, // ✅ 추가
   }) : super(key: key);
 
   @override
@@ -44,6 +46,7 @@ class _ConfirmationViewState extends State<ConfirmationView> {
     super.initState();
     _managerMainSignature = widget.initialManagerMainSignature;
     _managerSubSignature = widget.initialManagerSubSignature;
+    _prefillManagerMain(); // ✅ 초기값 반영
   }
 
   @override
@@ -57,6 +60,25 @@ class _ConfirmationViewState extends State<ConfirmationView> {
     if (oldWidget.initialManagerSubSignature !=
         widget.initialManagerSubSignature) {
       _managerSubSignature = widget.initialManagerSubSignature;
+    }
+
+    // ✅ mainName이 바뀌었거나, (중요) 현재 컨트롤러가 비어있으면 다시 프리필
+    if (oldWidget.mainName != widget.mainName ||
+        widget.managerMainController.text.isEmpty) {
+      _prefillManagerMain();
+    }
+  }
+
+  void _prefillManagerMain() {
+    final m = widget.mainName;
+    if (m != null &&
+        m.isNotEmpty &&
+        widget.managerMainController.text.isEmpty) {
+      widget.managerMainController.text = m;
+      // 초기 표시만 하고 저장/서명 정책 건드리지 않음.
+      // 만약 DB 동기화도 원하면 아래 주석 해제:
+      // widget.onNameChanged?.call('안전관리자', m);
+      setState(() {}); // 화면 갱신
     }
   }
 
@@ -104,9 +126,15 @@ class _ConfirmationViewState extends State<ConfirmationView> {
 
                         widget.inspectorController.text = nameCtrl.text;
                         widget.onNameChanged?.call('점검 확인자', nameCtrl.text);
-                        setState(
-                          () => _inspectorSignature = null,
-                        ); // 이름 바꾸면 서명 초기화
+
+                        // 2) ✅ 서명 제거 → 액션 셀에 ‘메일발송’(빨강) 복귀
+                        setState(() {
+                          _inspectorSignature = null;
+                        });
+                        widget.onSignatureChanged?.call('점검 확인자', null); //
+                        // setState(
+                        //   () => _inspectorSignature = null,
+                        // ); // 이름 바꾸면 서명 초기화
                         Navigator.of(ctx).pop();
                         //widget.onSendEmail(); // 콜백 호출
                       },
@@ -151,7 +179,7 @@ class _ConfirmationViewState extends State<ConfirmationView> {
               onPressed: () {
                 widget.inspectorController.text = nameCtrl.text;
                 widget.onNameChanged?.call('점검 확인자', nameCtrl.text);
-                setState(() => _inspectorSignature = null); // 이름 바꾸면 서명 초기화
+                // setState(() => _inspectorSignature = null); // 이름 바꾸면 서명 초기화
                 Navigator.of(ctx).pop();
               },
               child: const Text('입력'),
@@ -178,11 +206,11 @@ class _ConfirmationViewState extends State<ConfirmationView> {
             children: [
               // ── 로고 영역 ──
               Expanded(
-                flex: 1,
+                flex: 9,
                 child: Container(
                   decoration: BoxDecoration(color: Colors.white),
                   alignment: Alignment.center,
-                  padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
                   child: Image.asset(
                     'assets/images/logos.png',
                     fit: BoxFit.contain,
@@ -192,7 +220,7 @@ class _ConfirmationViewState extends State<ConfirmationView> {
 
               // ── '확인' 레이블 및 3행 입력/서명 뷰 ──
               Expanded(
-                flex: 1,
+                flex: 10,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -228,26 +256,17 @@ class _ConfirmationViewState extends State<ConfirmationView> {
                             signature: _inspectorSignature,
                             onSignatureAdded: (b) =>
                                 setState(() => _inspectorSignature = b),
-                            onMailTap: widget.onSendEmail,
+                            onMailTap: () => _showInspectorDialog(),
                             baseFont: baseFont,
-                            onRowTap: _showInspectorDialog, // ✅ 이 행만 전체 터치 → 팝업
+                            //  onRowTap: _showInspectorDialog, // ✅ 이 행만 전체 터치 → 팝업
                           ),
                           _buildRow(
-                            label: '안전관리자(정)',
+                            label: '안전관리자',
                             controller: widget.managerMainController,
                             actionLabel: '(인)',
                             signature: _managerMainSignature,
                             onSignatureAdded: (b) =>
                                 setState(() => _managerMainSignature = b),
-                            baseFont: baseFont,
-                          ),
-                          _buildRow(
-                            label: '안전관리자(부)',
-                            controller: widget.managerSubController,
-                            actionLabel: '(인)',
-                            signature: _managerSubSignature,
-                            onSignatureAdded: (b) =>
-                                setState(() => _managerSubSignature = b),
                             baseFont: baseFont,
                           ),
                         ],
@@ -357,8 +376,8 @@ class _ConfirmationViewState extends State<ConfirmationView> {
 
               if (result != null) {
                 // 이름 바꾸면 해당 행의 서명 초기화(정책 유지)
-                onSignatureAdded(null);
-                widget.onSignatureChanged?.call(label, null);
+                // onSignatureAdded(null);
+                // widget.onSignatureChanged?.call(label, null);
 
                 controller.text = result;
                 widget.onNameChanged?.call(label, result);
@@ -370,7 +389,7 @@ class _ConfirmationViewState extends State<ConfirmationView> {
                 color: Colors.white,
                 border: Border.fromBorderSide(_cellBorder),
               ),
-              alignment: Alignment.centerLeft, // 가로 왼쪽, 세로 중앙
+              alignment: Alignment.center, // 가로 왼쪽, 세로 중앙
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Text(
                 displayText,
@@ -406,35 +425,31 @@ class _ConfirmationViewState extends State<ConfirmationView> {
                 color: Colors.white,
                 border: Border.fromBorderSide(_cellBorder),
               ),
-              alignment: Alignment.center,
-             child: signature != null
-    ? LayoutBuilder(
-        builder: (context, c) {
-          final dpr = MediaQuery.of(context).devicePixelRatio;
-          final targetW = (c.maxWidth * dpr).round();
-          final targetH = (c.maxHeight * dpr).round();
-
-          return Center(
-            child: Image.memory(
-              signature,
-              fit: BoxFit.contain,               // ✅ 비율 유지
-              filterQuality: FilterQuality.high, // ✅ 고화질 스케일링
-              cacheWidth: targetW,               // ✅ 디코더에 크기 힌트
-              cacheHeight: targetH,
-            ),
-          );
-        },
-      )
-                  : Text(
-                      actionLabel, // '메일발송' 또는 '(인)'
-                      style: TextStyle(
-                        color: actionLabel == '메일발송'
-                            ? Colors.red
-                            : Colors.black,
-                        fontSize: baseFont,
-                        fontWeight: actionLabel == '메일발송'
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+              // alignment 지우세요 (Center 효과가 루즈 제약을 줌)
+              child: signature != null
+                  ? ClipRect(
+                      child: SizedBox.expand(
+                        // 🔹 부모 영역을 꽉 채우는 타이트 제약
+                        child: Image.memory(
+                          signature,
+                          fit: BoxFit.cover, // 🔹 전체 채움(일부 크롭 가능)
+                          filterQuality: FilterQuality.high,
+                        ),
+                      ),
+                    )
+                  : Center(
+                      // 텍스트는 센터에
+                      child: Text(
+                        actionLabel,
+                        style: TextStyle(
+                          color: actionLabel == '메일발송'
+                              ? Colors.red
+                              : Colors.black,
+                          fontSize: baseFont,
+                          fontWeight: actionLabel == '메일발송'
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
                       ),
                     ),
             ),

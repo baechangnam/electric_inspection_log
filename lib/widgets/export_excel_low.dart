@@ -47,7 +47,7 @@ class KoHighHeaderLow {
     }
 
     // 1) 제목
-    mergeLabel('C3:O4', '전기설비 점검결과 통지서(저압용)', bold: true, size: 16);
+    mergeLabel('C3:O4', '전기설비 점검결과 통지서', bold: true, size: 16);
 
     // 2) 결재/담당/팀장
     mergeLabel('T2:T5', '결재', rotation: 255); // 세로 배치
@@ -1358,7 +1358,7 @@ class KoHighHeaderLow {
     final r = startRow;
 
     // 3:1:3:1:3:1:3:3:3:나머지 => 총 28열 맞춤
-    cell('A$r:C$r', text: '한전지침', bold: true); // 3
+    cell('A$r:C$r', text: '계량기 지침', bold: true); // 3
     cell('D$r:F$r', text: '전일 ⑤', bold: true); // 1
     cell('G$r:J$r', text: fmt(val1)); // 3
 

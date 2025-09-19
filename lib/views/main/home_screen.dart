@@ -451,6 +451,7 @@ Future<BoardItem?> showConsumerDetailDialog({
               _InfoRow(label: '수전 용량', value: _kw(item.incomingCapacity)),
               _InfoRow(label: '발전용량', value: _kw(item.generationCapacity)),
               _InfoRow(label: '태양광용량', value: _kw(item.solarCapacity)),
+              _InfoRow(label: '선임', value: (item.supervisorName)),
               _InfoRow(label: 'E-mail', value: item.email),
               const SizedBox(height: 12),
 

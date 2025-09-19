@@ -47,7 +47,7 @@ class KoHighHeader {
     }
 
     // 1) 제목
-    mergeLabel('C3:O4', '전기설비 점검결과 통지서(고압용)', bold: true, size: 16);
+    mergeLabel('C3:O4', '전기설비 점검결과 통지서', bold: true, size: 16);
 
     // 2) 결재/담당/팀장
     mergeLabel('T2:T5', '결재', rotation: 255); // 세로 배치
@@ -1355,7 +1355,7 @@ class KoHighHeader {
 
     // ───── 1행: 현 지침 ─────
     final r1 = startRow;
-    cell('A$r1:C$r1', text: '한전(현 지침)', bold: true);
+    cell('A$r1:C$r1', text: '계량기 지침', bold: true);
     cell('D$r1:D$r1', text: '⑥', bold: true); // 요청대로 ⑥/⑤/④ 순서 원하면 바꿔도 됨
     cell('E$r1:G$r1', text: fmt(e.guidelineCurrent6));
     cell('H$r1:H$r1', text: '⑤', bold: true);
@@ -1366,18 +1366,7 @@ class KoHighHeader {
     cell('S$r1:U$r1', text: fmt(e.guidelineCurrentSum));
     cell('V$r1:AB$r1', text: 'kwh', bold: true);
 
-    // ───── 2행: 전 지침 ─────
-    final r2 = startRow + 1;
-    cell('A$r2:C$r2', text: '한전(전 지침)', bold: true);
-    cell('D$r2:D$r2', text: '⑪', bold: true);
-    cell('E$r2:G$r2', text: fmt(e.guidelinePrev11));
-    cell('H$r2:H$r2', text: '⑩', bold: true);
-    cell('I$r2:K$r2', text: fmt(e.guidelinePrev10));
-    cell('L$r2:L$r2', text: '⑨', bold: true);
-    cell('M$r2:O$r2', text: fmt(e.guidelinePrev9));
-    cell('P$r2:R$r2', text: '전추지침계', bold: true);
-    cell('S$r2:U$r2', text: fmt(e.guidelinePrevSum));
-    cell('V$r2:AB$r2', text: 'kwh', bold: true);
+
   }
 
   static void applyFinalConfirmBlock(
