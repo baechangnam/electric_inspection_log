@@ -2157,40 +2157,39 @@ class _ExcelGridState extends State<ExcelGridLow> {
                   ),
                   child: Column(
                     children: [
-                      Expanded(
+                    Expanded(
                         flex: 1,
                         child: LayoutBuilder(
                           builder: (context, constraints) {
-                            final totalW = constraints.maxWidth;
                             final rowH = constraints.maxHeight;
-                            final border = Border.all(
-                              color: Colors.grey.shade300,
-                              width: 0.5,
-                            );
-                            final baseFont = rowH * 0.55;
 
-                            Widget cell(
+                            // 선 두께/색
+                            final thin = BorderSide(
+                             color: Colors.grey.shade300, width: 0.5
+                            );
+                            final thick = BorderSide(
+                             color: Colors.grey.shade300, width: 1
+                            );
+
+                            // 헤더 셀 헬퍼: 오른쪽 보더만 그림
+                            Widget headerCell(
                               String text, {
-                              FontWeight weight = FontWeight.normal,
+                              bool thickRight = false,
                             }) {
                               return Container(
                                 alignment: Alignment.center,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
-                                  border: border,
+                                  border: Border(
+                                    right: thickRight ? thick : thin,
+                                  ),
                                 ),
-                                child: FittedBox(
-                                  fit: BoxFit.scaleDown,
-                                  child: Text(
-                                    text,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: baseFont,
-                                      fontWeight: weight,
-                                    ),
+                                child: Text(
+                                  text,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               );
@@ -2198,127 +2197,75 @@ class _ExcelGridState extends State<ExcelGridLow> {
 
                             return Row(
                               children: [
-                                // 1st group: 저 압 설 비 / 판정 / 비고 (4:2:3) => total flex 9
+                                // ─ 1st group: 저 압 설 비 / 판정 / 비고 (4:2:3)
                                 Expanded(
                                   flex: 9,
                                   child: Row(
                                     children: [
                                       Expanded(
                                         flex: 4,
-                                        child: Text(
-                                          '저 압 설 비',
-                                          style: TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
+                                        child: headerCell('저 압 설 비'),
                                       ),
                                       Expanded(
                                         flex: 2,
-                                        child: Text(
-                                          '판정',
-                                          style: TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
+                                        child: headerCell('판정'),
                                       ),
+                                      // ✅ 그룹 마지막 '비고'만 두껍게
                                       Expanded(
                                         flex: 3,
-                                        child: Text(
+                                        child: headerCell(
                                           '비고',
-                                          style: TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          textAlign: TextAlign.center,
+                                          thickRight: false,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                                // 2nd group: 특고(고압)설비 / 판정 / 비고 (4:2:3)
+
+                                // ─ 2nd group: 특고(고압)설비 / 판정 / 비고 (4:2:3)
                                 Expanded(
                                   flex: 9,
                                   child: Row(
                                     children: [
                                       Expanded(
                                         flex: 4,
-                                        child: Text(
-                                          '특고(고압)설비',
-                                          style: TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
+                                        child: headerCell('특고(고압)설비'),
                                       ),
                                       Expanded(
                                         flex: 2,
-                                        child: Text(
-                                          '판정',
-                                          style: TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
+                                        child: headerCell('판정'),
                                       ),
                                       Expanded(
                                         flex: 3,
-                                        child: Text(
+                                        child: headerCell(
                                           '비고',
-                                          style: TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          textAlign: TextAlign.center,
+                                          thickRight: false,
                                         ),
-                                      ),
+                                      ), // ✅
                                     ],
                                   ),
                                 ),
-                                // 3rd group: 태 양 광 설 비 / 판정 / 비고 (4:2:4) => total flex 10
+
+                                // ─ 3rd group: 태양광설비 / 판정 / 비고 (5:2:3)  ← 현재 코드 기준
                                 Expanded(
                                   flex: 10,
                                   child: Row(
                                     children: [
                                       Expanded(
                                         flex: 5,
-                                        child: Text(
-                                          '태양광설비',
-                                          style: TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
+                                        child: headerCell('태양광설비'),
                                       ),
-
                                       Expanded(
                                         flex: 2,
-                                        child: Text(
-                                          '판정',
-                                          style: TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
+                                        child: headerCell('판정'),
                                       ),
                                       Expanded(
                                         flex: 3,
-                                        child: Text(
+                                        child: headerCell(
                                           '비고',
-                                          style: TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          textAlign: TextAlign.center,
+                                          thickRight: false,
                                         ),
-                                      ),
+                                      ), // ✅
                                     ],
                                   ),
                                 ),
@@ -2327,6 +2274,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
                           },
                         ),
                       ),
+
 
                       ...List.generate(7, (i) {
                         return Expanded(
