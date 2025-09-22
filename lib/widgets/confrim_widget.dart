@@ -210,7 +210,7 @@ class _ConfirmationViewState extends State<ConfirmationView> {
                 child: Container(
                   decoration: BoxDecoration(color: Colors.white),
                   alignment: Alignment.centerLeft,
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0 , vertical :2),
                   child: Image.asset(
                     'assets/logo_new.png',
                     fit: BoxFit.contain,

@@ -1313,7 +1313,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
                         Positioned(
                           left: 17 * cellW,
                           top: 0,
-                          width: 7 * cellW,
+                          width: 6 * cellW,
                           height: cellH,
                           child: Container(
                             alignment: Alignment.center,
@@ -1336,7 +1336,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
 
                         // U~V : 일기 텍스트 병합
                         Positioned(
-                          left: 24 * cellW,
+                          left: 23 * cellW,
                           top: 0,
                           width: 2 * cellW,
                           height: cellH,
@@ -1363,14 +1363,14 @@ class _ExcelGridState extends State<ExcelGridLow> {
 
                         // X~AB : 실제 날씨 병합
                         Positioned(
-                          left: 26 * cellW,
+                          left: 25 * cellW,
                           top: 0,
                           width: 3 * cellW,
                           height: cellH,
                           child: GestureDetector(
                             onTap: _onTapWeather,
                             child: Container(
-                              alignment: Alignment.center,
+                              alignment: Alignment.centerRight,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 4,
                               ),
