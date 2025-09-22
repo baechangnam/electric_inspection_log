@@ -143,7 +143,7 @@ class _GuidelineInputWidgetState extends State<GuidelineInputWidgetLow> {
                     text,
                     textAlign: ta,
                     style: TextStyle(
-                      fontSize: fontSize,
+                      fontSize: text.contains('⑤') ? fontSize + 1 : fontSize, 
                       fontWeight: bold ? FontWeight.normal : FontWeight.normal,
                     ),
                   ),
