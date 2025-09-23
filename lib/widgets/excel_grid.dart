@@ -11,6 +11,7 @@ import 'package:electric_inspection_log/views/main/drawing_screen.dart';
 import 'package:electric_inspection_log/views/main/template_screen.dart';
 import 'package:electric_inspection_log/widgets/confrim_widget.dart';
 import 'package:electric_inspection_log/widgets/drawing_popup.dart';
+import 'package:electric_inspection_log/widgets/drawing_popup_sign.dart';
 import 'package:electric_inspection_log/widgets/empty_line.dart';
 import 'package:electric_inspection_log/widgets/export_excel.dart';
 import 'package:electric_inspection_log/widgets/inspection_entry.dart';
@@ -413,7 +414,7 @@ class _ExcelGridState extends State<ExcelGrid> {
 
   Future<Uint8List> _buildExcelBytes() async {
     final logoBytes = (await rootBundle.load(
-      'assets/images/logos.png',
+      'assets/logo_new.png',
     )).buffer.asUint8List();
 
     final wb = xlsio.Workbook();
@@ -2138,7 +2139,7 @@ class _ExcelGridState extends State<ExcelGrid> {
                             child: FittedBox(
                               fit: BoxFit.scaleDown,
                               child: Text(
-                                '점검내역(판정 : O, △ , X , 양, 부) 해당없음',
+                                '점검내역(판정 : O, △ , X , 양, 부) 해당없음 /',
 
                                 style: TextStyle(
                                   fontSize: 9, // 크게 잡아두면…
@@ -2170,10 +2171,12 @@ class _ExcelGridState extends State<ExcelGrid> {
 
                             // 선 두께/색
                             final thin = BorderSide(
-                             color: Colors.grey.shade300, width: 0.5
+                              color: Colors.grey.shade300,
+                              width: 0.5,
                             );
                             final thick = BorderSide(
-                             color: Colors.grey.shade300, width: 1
+                              color: Colors.grey.shade300,
+                              width: 1,
                             );
 
                             // 헤더 셀 헬퍼: 오른쪽 보더만 그림
@@ -2577,7 +2580,7 @@ class _ExcelGridState extends State<ExcelGrid> {
                                 width: MediaQuery.of(context).size.width * 0.8,
                                 height:
                                     MediaQuery.of(context).size.height * 0.3,
-                                child: DrawingDialogContent(),
+                                child: DrawingDialogContentSign(),
                               ),
                             ),
                           );
@@ -2784,10 +2787,11 @@ class _ExcelGridState extends State<ExcelGrid> {
                   mainName: mainName,
 
                   // ⬇️ 이름 변경(기존대로)
+                  // ⬇️ 이름 변경(기존대로)
                   onNameChanged: (field, value) {
                     setState(() {
                       switch (field) {
-                        case '점검 확인자':
+                        case '점검확인자':
                           hvLogEntry.inspectorName = value;
                           break;
                         case '안전관리자':
@@ -2802,11 +2806,11 @@ class _ExcelGridState extends State<ExcelGrid> {
                   onSignatureChanged: (who, bytes) {
                     setState(() {
                       switch (who) {
+                        case '점검확인자':
+                          hvLogEntry.managerSubSignature = bytes;
+                          break;
                         case '안전관리자':
                           hvLogEntry.managerMainSignature = bytes;
-                          break;
-                        case '안전관리자(부)':
-                          hvLogEntry.managerSubSignature = bytes;
                           break;
                       }
                       saveDB();

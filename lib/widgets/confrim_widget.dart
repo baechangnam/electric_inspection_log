@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:electric_inspection_log/widgets/drawing_popup.dart';
+import 'package:electric_inspection_log/widgets/drawing_popup_sign.dart';
 import 'package:flutter/material.dart';
 
 /// 3행짜리 확인/입력/액션 뷰
@@ -125,13 +126,13 @@ class _ConfirmationViewState extends State<ConfirmationView> {
                         }
 
                         widget.inspectorController.text = nameCtrl.text;
-                        widget.onNameChanged?.call('점검 확인자', nameCtrl.text);
+                        widget.onNameChanged?.call('점검확인자', nameCtrl.text);
 
                         // 2) ✅ 서명 제거 → 액션 셀에 ‘메일발송’(빨강) 복귀
                         setState(() {
                           _inspectorSignature = null;
                         });
-                        widget.onSignatureChanged?.call('점검 확인자', null); //
+                        widget.onSignatureChanged?.call('점검확인자', null); //
                         // setState(
                         //   () => _inspectorSignature = null,
                         // ); // 이름 바꾸면 서명 초기화
@@ -148,19 +149,32 @@ class _ConfirmationViewState extends State<ConfirmationView> {
                         final pngBytes = await showDialog<Uint8List>(
                           context: context,
                           barrierDismissible: false,
-                          builder: (_) => Dialog(
-                            child: SizedBox(
-                              width: MediaQuery.of(context).size.width * 0.8,
-                              height: MediaQuery.of(context).size.height * 0.6,
-                              child: DrawingDialogContent(),
-                            ),
-                          ),
+                          builder: (ctx) {
+                            final size = MediaQuery.of(ctx).size;
+                            final width = size.width * 0.8;
+                            const aspect = 3 / 1;
+                            const chrome = 120.0;
+                            final height = (width / aspect) + chrome;
+
+                            return Dialog(
+                              child: SizedBox(
+                                width: width,
+                                height: height.clamp(
+                                  0.0,
+                                  size.height * 0.9,
+                                ), // 화면 넘치지 않게 제한
+                                child: const DrawingDialogContentSign(
+                                  aspectRatio: aspect,
+                                ),
+                              ),
+                            );
+                          },
                         );
                         if (pngBytes != null) {
                           setState(() {
                             _inspectorSignature = pngBytes;
                           });
-                          widget.onSignatureChanged?.call('점검 확인자', pngBytes);
+                          widget.onSignatureChanged?.call('점검확인자', pngBytes);
                           Navigator.of(ctx).pop(); // 닫기
                         }
                       },
@@ -178,7 +192,7 @@ class _ConfirmationViewState extends State<ConfirmationView> {
             TextButton(
               onPressed: () {
                 widget.inspectorController.text = nameCtrl.text;
-                widget.onNameChanged?.call('점검 확인자', nameCtrl.text);
+                widget.onNameChanged?.call('점검확인자', nameCtrl.text);
                 // setState(() => _inspectorSignature = null); // 이름 바꾸면 서명 초기화
                 Navigator.of(ctx).pop();
               },
@@ -194,6 +208,9 @@ class _ConfirmationViewState extends State<ConfirmationView> {
 
   @override
   Widget build(BuildContext context) {
+    final inspectorDisplaySignature =
+        _inspectorSignature ?? widget.initialManagerSubSignature;
+
     return Container(
       // decoration: BoxDecoration(border: Border.fromBorderSide(_cellBorder)),
       child: LayoutBuilder(
@@ -210,7 +227,7 @@ class _ConfirmationViewState extends State<ConfirmationView> {
                 child: Container(
                   decoration: BoxDecoration(color: Colors.white),
                   alignment: Alignment.centerLeft,
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0 , vertical :2),
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
                   child: Image.asset(
                     'assets/logo_new.png',
                     fit: BoxFit.contain,
@@ -250,15 +267,20 @@ class _ConfirmationViewState extends State<ConfirmationView> {
                       child: Column(
                         children: [
                           _buildRow(
-                            label: '점검 확인자',
+                            label: '점검확인자',
                             controller: widget.inspectorController,
-                            actionLabel: '메일발송',
-                            signature: _inspectorSignature,
-                            onSignatureAdded: (b) =>
-                                setState(() => _inspectorSignature = b),
-                            onMailTap: () => _showInspectorDialog(),
+                            actionLabel: '메일발송', // ← 항상 유지
+                            signature: inspectorDisplaySignature, // ← 이미지 표시 로직
+
+                            onSignatureAdded: (b) {
+                              setState(() => _inspectorSignature = b);
+                              widget.onSignatureChanged?.call(
+                                '점검확인자',
+                                b,
+                              ); // ✅ 메인에 inspectorSignature 저장
+                            },
+                            onMailTap: _showInspectorDialog, // ← 사인이 있어도 동작
                             baseFont: baseFont,
-                            //  onRowTap: _showInspectorDialog, // ✅ 이 행만 전체 터치 → 팝업
                           ),
                           _buildRow(
                             label: '안전관리자',
@@ -299,13 +321,21 @@ class _ConfirmationViewState extends State<ConfirmationView> {
       final pngBytes = await showDialog<Uint8List>(
         context: context,
         barrierDismissible: false,
-        builder: (ctx) => Dialog(
-          child: SizedBox(
-            width: MediaQuery.of(context).size.width * 0.8,
-            height: MediaQuery.of(context).size.height * 0.6,
-            child: DrawingDialogContent(),
-          ),
-        ),
+        builder: (ctx) {
+          final size = MediaQuery.of(ctx).size;
+          final width = size.width * 0.8;
+          const aspect = 3 / 1;
+          const chrome = 120.0;
+          final height = (width / aspect) + chrome;
+
+          return Dialog(
+            child: SizedBox(
+              width: width,
+              height: height.clamp(0.0, size.height * 0.9), // 화면 넘치지 않게 제한
+              child: const DrawingDialogContentSign(aspectRatio: aspect),
+            ),
+          );
+        },
       );
       if (pngBytes != null) {
         onSignatureAdded(pngBytes); // 로컬 상태 갱신

@@ -208,14 +208,14 @@ class _GuidelineInputWidgetState extends State<GuidelineInputWidgetLow> {
                 _label('전일 ⑤', flex: 1),
                 _valueCell(
                   value: widget.entry.guidelineLowPre5,
-                  titleForCallback: '현 지침 ④ 입력', // 부모 switch에 맞춤
+                  titleForCallback: '전 지침 ⑤ 입력', // 부모 switch에 맞춤
                   onSet: (v) => widget.entry.guidelineLowPre5 = v,
                   flex: 3,
                 ),
                 _label('현일 ⑨', flex: 1),
                 _valueCell(
                   value: widget.entry.guidelineLowCurrent9,
-                  titleForCallback: '현 지침 ⑤ 입력', // 부모 switch에 맞춤
+                  titleForCallback: '현 지침 ⑨ 입력', // 부모 switch에 맞춤
                   onSet: (v) => widget.entry.guidelineLowCurrent9 = v,
                   flex: 3,
                 ),

@@ -288,7 +288,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
 
   Future<Uint8List> _buildExcelBytes() async {
     final logoBytes = (await rootBundle.load(
-      'assets/images/logos.png',
+      'assets/logo_new.png',
     )).buffer.asUint8List();
 
     final wb = xlsio.Workbook();
@@ -2133,7 +2133,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
                             child: FittedBox(
                               fit: BoxFit.scaleDown,
                               child: Text(
-                                '점검내역(판정 : O, △ , X , 양, 부) 해당없음',
+                                '점검내역(판정 : O, △ , X , 양, 부) 해당없음 /',
 
                                 style: TextStyle(
                                   fontSize: 9, // 크게 잡아두면…
@@ -2760,15 +2760,13 @@ class _ExcelGridState extends State<ExcelGridLow> {
                   onNameChanged: (field, value) {
                     setState(() {
                       switch (field) {
-                        case '점검 확인자':
+                        case '점검확인자':
                           hvLogEntry.inspectorName = value;
                           break;
-                        case '안전관리자(정)':
+                        case '안전관리자':
                           hvLogEntry.managerMainName = value;
                           break;
-                        case '안전관리자(부)':
-                          hvLogEntry.managerSubName = value;
-                          break;
+                      
                       }
                       saveDB();
                     });
@@ -2778,11 +2776,11 @@ class _ExcelGridState extends State<ExcelGridLow> {
                   onSignatureChanged: (who, bytes) {
                     setState(() {
                       switch (who) {
-                        case '안전관리자(정)':
-                          hvLogEntry.managerMainSignature = bytes;
-                          break;
-                        case '안전관리자(부)':
+                        case '점검확인자':
                           hvLogEntry.managerSubSignature = bytes;
+                          break;
+                        case '안전관리자':
+                          hvLogEntry.managerMainSignature = bytes;
                           break;
                       }
                       saveDB();
