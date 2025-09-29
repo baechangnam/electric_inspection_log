@@ -884,6 +884,7 @@ class _ExcelGridState extends State<ExcelGrid> {
   }
 
   String sRatio = '0';
+  DateTime now = DateTime.now();
 
   Future<void> _onTapSelectConsumer() async {
     // 1) 거래처 리스트 가져오기
@@ -1249,7 +1250,7 @@ class _ExcelGridState extends State<ExcelGrid> {
                               ),
 
                               child: Text(
-                                '고객명(상호)',
+                                '고객명',
                                 style: TextStyle(
                                   fontSize: 9, // 크게 잡아두면…
                                   fontWeight: FontWeight.bold,
@@ -1321,20 +1322,40 @@ class _ExcelGridState extends State<ExcelGrid> {
                           top: 0,
                           width: 6 * cellW,
                           height: cellH,
-                          child: Container(
-                            alignment: Alignment.center,
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: border,
-                            ),
+                          child: GestureDetector(
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: now,
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime(2100),
+                                locale: const Locale("ko", "KR"), // 한국어 달력
+                              );
 
-                            child: Text(
-                              formattedDate,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 9, // 크게 잡아두면…
-                                fontWeight: FontWeight.normal,
+                              if (picked != null) {
+                                setState(() {
+                                  now = picked;
+                                  formattedDate =
+                                      '${picked.year}년${picked.month}월${picked.day}일';
+                                });
+                              }
+                            },
+                            child: Container(
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+                              child: Text(
+                                formattedDate,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.normal,
+                                ),
                               ),
                             ),
                           ),

@@ -37,6 +37,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: '전기점검일지',
       debugShowCheckedModeBanner: false,
+      
       initialRoute: '/intro',
       routes: {
         '/intro': (_) => const IntroScreen(),

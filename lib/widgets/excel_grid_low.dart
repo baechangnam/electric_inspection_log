@@ -393,6 +393,8 @@ class _ExcelGridState extends State<ExcelGridLow> {
     return bytes;
   }
 
+  DateTime now = DateTime.now();
+
   String formatCapacity(String raw) {
     // 숫자로 변환
     final v = double.tryParse(raw.replaceAll(',', '').trim());
@@ -1204,7 +1206,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
                 ),
               ),
 
-             Expanded(
+              Expanded(
                 flex: 1,
                 child: LayoutBuilder(
                   builder: (context, constraints) {
@@ -1243,7 +1245,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
                               ),
 
                               child: Text(
-                                '고객명(상호)',
+                                '고객명',
                                 style: TextStyle(
                                   fontSize: 9, // 크게 잡아두면…
                                   fontWeight: FontWeight.bold,
@@ -1315,20 +1317,40 @@ class _ExcelGridState extends State<ExcelGridLow> {
                           top: 0,
                           width: 6 * cellW,
                           height: cellH,
-                          child: Container(
-                            alignment: Alignment.center,
-                            padding: const EdgeInsets.symmetric(horizontal: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: border,
-                            ),
+                          child: GestureDetector(
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: now,
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime(2100),
+                                locale: const Locale("ko", "KR"), // 한국어 달력
+                              );
 
-                            child: Text(
-                              formattedDate,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 9, // 크게 잡아두면…
-                                fontWeight: FontWeight.normal,
+                              if (picked != null) {
+                                setState(() {
+                                  now = picked;
+                                  formattedDate =
+                                      '${picked.year}년${picked.month}월${picked.day}일';
+                                });
+                              }
+                            },
+                            child: Container(
+                              alignment: Alignment.center,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: border,
+                              ),
+                              child: Text(
+                                formattedDate,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.normal,
+                                ),
                               ),
                             ),
                           ),
@@ -2157,7 +2179,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
                   ),
                   child: Column(
                     children: [
-                    Expanded(
+                      Expanded(
                         flex: 1,
                         child: LayoutBuilder(
                           builder: (context, constraints) {
@@ -2165,10 +2187,12 @@ class _ExcelGridState extends State<ExcelGridLow> {
 
                             // 선 두께/색
                             final thin = BorderSide(
-                             color: Colors.grey.shade300, width: 0.5
+                              color: Colors.grey.shade300,
+                              width: 0.5,
                             );
                             final thick = BorderSide(
-                             color: Colors.grey.shade300, width: 1
+                              color: Colors.grey.shade300,
+                              width: 1,
                             );
 
                             // 헤더 셀 헬퍼: 오른쪽 보더만 그림
@@ -2274,7 +2298,6 @@ class _ExcelGridState extends State<ExcelGridLow> {
                           },
                         ),
                       ),
-
 
                       ...List.generate(7, (i) {
                         return Expanded(
@@ -2602,7 +2625,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
                         children: [
                           // 배경: 이미지가 있으면 이미지, 아니면 4줄 텍스트
                           Positioned.fill(
-                           child: hvLogEntry.inspectionResultImage != null
+                            child: hvLogEntry.inspectionResultImage != null
                                 ? Padding(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 8,
@@ -2766,7 +2789,6 @@ class _ExcelGridState extends State<ExcelGridLow> {
                         case '안전관리자':
                           hvLogEntry.managerMainName = value;
                           break;
-                      
                       }
                       saveDB();
                     });
