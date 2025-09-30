@@ -329,9 +329,16 @@ class _ConfirmationViewState extends State<ConfirmationView> {
           final height = (width / aspect) + chrome;
 
           return Dialog(
+            alignment: Alignment.topCenter, // ⬅️ 화면 상단
+            insetPadding: const EdgeInsets.only(
+              top: 24,
+              left: 16,
+              right: 16,
+              bottom: 16,
+            ), // ⬅️ 가장자리 여백
             child: SizedBox(
               width: width,
-              height: height.clamp(0.0, size.height * 0.9), // 화면 넘치지 않게 제한
+              height: height.clamp(0.0, size.height * 0.9),
               child: const DrawingDialogContentSign(aspectRatio: aspect),
             ),
           );

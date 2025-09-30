@@ -3,108 +3,159 @@
 import 'package:flutter/material.dart';
 import 'numeric_keypad.dart';
 import '../data/models/hvItem.dart';
+// lib/widgets/guideline_input_widget.dart
 
-/// 한전 지침 입력 전용 위젯
 class GuidelineInputWidgetLow extends StatefulWidget {
   final SimpleHvLogEntry entry;
   final void Function(String fieldName, double value)? onChanged;
 
-  const GuidelineInputWidgetLow({Key? key, required this.entry, this.onChanged})
-    : super(key: key);
+  // 선택: 변경 즉시 저장하고 싶으면 부모에서 넘겨주세요.
+  final Future<void> Function(SimpleHvLogEntry entry)? onSave;
+
+  const GuidelineInputWidgetLow({
+    Key? key,
+    required this.entry,
+    this.onChanged,
+    this.onSave,
+  }) : super(key: key);
 
   @override
-  _GuidelineInputWidgetState createState() => _GuidelineInputWidgetState();
+  _GuidelineInputWidgetLowState createState() => _GuidelineInputWidgetLowState();
 }
 
-String _fmt(double v) {
-  if (v == 0) return '_';
-
-  final isInt = v % 1 == 0;
-  String s = isInt ? v.toStringAsFixed(0) : v.toStringAsFixed(2);
-
-  if (!isInt && s.contains('.')) {
-    s = s.replaceFirst(RegExp(r'0+$'), ''); // 소수부 끝 0 제거
-    s = s.replaceFirst(RegExp(r'\.$'), ''); // 소수점만 남은 경우 제거
-  }
-
-  final parts = s.split('.');
-  final intPart = parts[0];
-  final decPart = parts.length > 1 ? parts[1] : '';
-
-  final buf = StringBuffer();
-  for (int i = 0; i < intPart.length; i++) {
-    final idxFromEnd = intPart.length - i;
-    buf.write(intPart[i]);
-    if (idxFromEnd > 1 && idxFromEnd % 3 == 1) buf.write(',');
-  }
-
-  return decPart.isEmpty ? buf.toString() : '${buf.toString()}.$decPart';
-}
-
-class _GuidelineInputWidgetState extends State<GuidelineInputWidgetLow> {
+class _GuidelineInputWidgetLowState extends State<GuidelineInputWidgetLow> {
   Future<void> _showAndHandleInput({
     required String title,
+    required String fieldName,             // 콜백/로그용 식별자
     required double currentValue,
-    required void Function(double v) handleValue,
+    required void Function(double v) apply, // 모델 반영(합계 재계산 포함)
   }) async {
     final result = await showNumericKeypad(
       context,
       title: title,
       initialValue: currentValue,
     );
-    if (result != null) {
-      // 1) 값을 할당 & 합계 재계산
-      setState(() {
-        handleValue(result);
-      });
-      // 2) 부모 콜백으로도 알림
-      widget.onChanged?.call(title, result);
-    }
+    if (result == null) return;
+
+    setState(() => apply(result));
+    widget.onChanged?.call(fieldName, result);
+    if (widget.onSave != null) await widget.onSave!(widget.entry);
   }
 
-  Widget _valueCell(
-    double value,
-    double fontSize,
-    int flex, {
-    FontWeight weight = FontWeight.normal,
-    TextAlign align = TextAlign.center,
-  }) => Expanded(
-    flex: flex,
-    child: Container(
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey.shade300, width: 0.5),
-      ),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Text(
-          _fmt(value), // ← 여기서만 포맷
-          textAlign: align, // 요구: 가운데 맞춤
-          style: TextStyle(fontSize: fontSize, fontWeight: weight),
-        ),
-      ),
-    ),
-  );
+  String _fmt(double v) {
+    if (v == 0) return '_';
+    final isInt = v % 1 == 0;
+    String s = isInt ? v.toStringAsFixed(0) : v.toStringAsFixed(2);
+    if (!isInt && s.contains('.')) {
+      s = s.replaceFirst(RegExp(r'0+$'), '');
+      s = s.replaceFirst(RegExp(r'\.$'), '');
+    }
+    final parts = s.split('.');
+    final intPart = parts[0];
+    final decPart = parts.length > 1 ? parts[1] : '';
+    final buf = StringBuffer();
+    for (int i = 0; i < intPart.length; i++) {
+      final idxFromEnd = intPart.length - i;
+      buf.write(intPart[i]);
+      if (idxFromEnd > 1 && idxFromEnd % 3 == 1) buf.write(',');
+    }
+    return decPart.isEmpty ? buf.toString() : '${buf.toString()}.$decPart';
+  }
 
-  // 텍스트 셀
-  Widget _textCell(String text, double fontSize, int flex) => Expanded(
-    flex: flex,
-    child: Container(
+  // 클릭 가능한 라벨 셀 (⑤/⑨)
+  Widget _labelCell({
+    required String displayText,
+    required VoidCallback onTap,
+    required int flex,
+    required double fontSize,
+  }) {
+    final child = Container(
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: Colors.grey.shade300, width: 0.5),
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       child: FittedBox(
         fit: BoxFit.scaleDown,
         child: Text(
-          text,
-          style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.normal),
+          displayText,
+          style: TextStyle(fontSize: fontSize + 1), // 라벨은 살짝 크게
         ),
       ),
-    ),
-  );
+    );
+    return Expanded(flex: flex, child: InkWell(onTap: onTap, child: child));
+  }
+
+  // 값(숫자) 셀
+  Widget _valueCellEditable({
+    required double value,
+    required String fieldName,
+    required String title,
+    required void Function(double v) apply,
+    required int flex,
+    required double fontSize,
+  }) {
+    return Expanded(
+      flex: flex,
+      child: GestureDetector(
+        onTap: () => _showAndHandleInput(
+          title: title,
+          fieldName: fieldName,
+          currentValue: value,
+          apply: (v) {
+            apply(v);
+            // 지침 차 자동 재계산
+            widget.entry.guidelineLowSum =
+                widget.entry.guidelineLowCurrent9 - widget.entry.guidelineLowPre5;
+          },
+        ),
+        child: Container(
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: Colors.grey.shade300, width: 0.5),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              _fmt(value),
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: fontSize),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 읽기전용 합계 셀
+  Widget _sumCell({
+    required double value,
+    required int flex,
+    required double fontSize,
+  }) {
+    return Expanded(
+      flex: flex,
+      child: Container(
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Colors.grey.shade300, width: 0.5),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            _fmt(value),
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: fontSize),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,132 +169,113 @@ class _GuidelineInputWidgetState extends State<GuidelineInputWidgetLow> {
       ),
       child: LayoutBuilder(
         builder: (ctx, constraints) {
-          final rowH = constraints.maxHeight; // 한 줄 뷰니까 전체 높이 = 한 행
+          final rowH = constraints.maxHeight;
           final fontSize = 8.0;
-
-          // 셀 빌더
-          Widget _label(
-            String text, {
-            int flex = 1,
-            bool bold = true,
-            TextAlign ta = TextAlign.center,
-          }) {
-            return Expanded(
-              flex: flex,
-              child: Container(
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: Colors.grey.shade300, width: 0.5),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    text,
-                    textAlign: ta,
-                    style: TextStyle(
-                      fontSize: text.contains('⑤') ? fontSize + 1 : fontSize, 
-                      fontWeight: bold ? FontWeight.normal : FontWeight.normal,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }
-
-          Widget _valueCell({
-            required double value,
-            required String titleForCallback, // '현 지침 ④ 입력' 등
-            required void Function(double v) onSet,
-            int flex = 1,
-          }) {
-            return Expanded(
-              flex: flex,
-              child: GestureDetector(
-                onTap: () => _showAndHandleInput(
-                  title: titleForCallback,
-                  currentValue: value,
-                  handleValue: (v) {
-                    // 1) 입력값 저장
-                    onSet(v);
-
-                    // 2) 지침 차(= current5 - current4) 및 합계 재계산
-                    final v1 = widget.entry.guidelineLowPre5;
-                    final v2 = widget.entry.guidelinePrev9;
-                    final diff = v2 - v1;
-                    widget.entry.guidelineLowSum = diff;
-
-                    // 3) 부모에도 ⑥ 변경 알려주기(자동 계산값)
-                    widget.onChanged?.call('현 지침 ⑥ 입력', diff);
-                  },
-                ),
-                child: Container(
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: Colors.grey.shade300, width: 0.5),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      _fmt(value), // ✅ 포맷 적용
-                      textAlign: TextAlign.center, // ✅ 가운데 맞춤
-                      style: TextStyle(fontSize: fontSize),
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }
 
           return SizedBox(
             height: rowH,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 레이아웃: 3 : 1 : 3 : 1 : 3 : 1 : 3 : 1  (총 16)
-                _label('계량기 지침', flex: 3),
-                _label('전일 ⑤', flex: 1),
-                _valueCell(
-                  value: widget.entry.guidelineLowPre5,
-                  titleForCallback: '전 지침 ⑤ 입력', // 부모 switch에 맞춤
-                  onSet: (v) => widget.entry.guidelineLowPre5 = v,
-                  flex: 3,
-                ),
-                _label('현일 ⑨', flex: 1),
-                _valueCell(
-                  value: widget.entry.guidelineLowCurrent9,
-                  titleForCallback: '현 지침 ⑨ 입력', // 부모 switch에 맞춤
-                  onSet: (v) => widget.entry.guidelineLowCurrent9 = v,
-                  flex: 3,
-                ),
-                _label('지침 차', flex: 1),
-                // 자동 계산 셀(수정 불가, 터치 비활성)
+                // 3 : 1 : 3 : 1 : 3 : 1 : 3 : 1 (총 16)
                 Expanded(
                   flex: 3,
                   child: Container(
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      border: Border.all(
-                        color: Colors.grey.shade300,
-                        width: 0.5,
-                      ),
+                      border: Border.all(color: Colors.grey.shade300, width: 0.5),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
-                      child: Text(
-                        _fmt(widget.entry.guidelineLowSum), // ✅ 포맷 적용
-                        textAlign: TextAlign.center, // ✅ 가운데 맞춤
-                        style: TextStyle(fontSize: fontSize),
-                      ),
+                      child: Text('계량기 지침', style: TextStyle(fontSize: fontSize)),
                     ),
                   ),
                 ),
-                _label('kWh', flex: 1),
+
+                // ── 전일 ⑤ (라벨 탭 → guidelineLowLabel5 수정)
+                _labelCell(
+                  displayText: widget.entry.guidelineLowLabel5 == 0
+                      ? '⑤'
+                      : _fmt(widget.entry.guidelineLowLabel5),
+                  onTap: () => _showAndHandleInput(
+                    title: '입력',
+                    fieldName: 'guidelineLowLabel5',
+                    currentValue: widget.entry.guidelineLowLabel5,
+                    apply: (v) => widget.entry.guidelineLowLabel5 = v,
+                  ),
+                  flex: 1,
+                  fontSize: fontSize,
+                ),
+                // 값 셀 → guidelineLowPre5 수정
+                _valueCellEditable(
+                  value: widget.entry.guidelineLowPre5,
+                  fieldName: 'guidelineLowPre5',
+                  title: '⑤',
+                  apply: (v) => widget.entry.guidelineLowPre5 = v,
+                  flex: 3,
+                  fontSize: fontSize,
+                ),
+
+                // ── 현일 ⑨ (라벨 탭 → guidelineLowLabel9 수정)
+                _labelCell(
+                  displayText: widget.entry.guidelineLowLabel9 == 0
+                      ? '⑨'
+                      : _fmt(widget.entry.guidelineLowLabel9),
+                  onTap: () => _showAndHandleInput(
+                    title: '⑨',
+                    fieldName: 'guidelineLowLabel9',
+                    currentValue: widget.entry.guidelineLowLabel9,
+                    apply: (v) => widget.entry.guidelineLowLabel9 = v,
+                  ),
+                  flex: 1,
+                  fontSize: fontSize,
+                ),
+                // 값 셀 → guidelineLowCurrent9 수정
+                _valueCellEditable(
+                  value: widget.entry.guidelineLowCurrent9,
+                  fieldName: 'guidelineLowCurrent9',
+                  title: '입력',
+                  apply: (v) => widget.entry.guidelineLowCurrent9 = v,
+                  flex: 3,
+                  fontSize: fontSize,
+                ),
+
+                // ── 지침 차 (읽기전용: ⑨ - ⑤)
+                Expanded(
+                  flex: 1,
+                  child: Container(
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey.shade300, width: 0.5),
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text('지침 차', style: TextStyle(fontSize: fontSize)),
+                    ),
+                  ),
+                ),
+                _sumCell(
+                  value: widget.entry.guidelineLowSum,
+                  flex: 3,
+                  fontSize: fontSize,
+                ),
+
+                Expanded(
+                  flex: 1,
+                  child: Container(
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey.shade300, width: 0.5),
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text('kWh', style: TextStyle(fontSize: fontSize)),
+                    ),
+                  ),
+                ),
               ],
             ),
           );

@@ -163,7 +163,7 @@ class _TransmissionVoltageQuadWidgetState
         final baseFont = 8.0;
 
         final bool isCurrent = widget.tag == 1;
-        final String genLabel = isCurrent ? '현재 발전량' : '전월 발전량';
+        final String genLabel = isCurrent ? '현재발전량' : '전월발전량';
         final String genInputTitle = '$genLabel 입력';
 
         return Row(
@@ -689,7 +689,7 @@ class _TransmissionVoltageQuadWidgetState
                               child: FittedBox(
                                 fit: BoxFit.scaleDown,
                                 child: Text(
-                                  '누적 발전량',
+                                  '누적발전량',
                                   style: TextStyle(
                                     fontSize: baseFont,
                                     fontWeight: FontWeight.normal,
@@ -703,7 +703,7 @@ class _TransmissionVoltageQuadWidgetState
                             flex: 4,
                             child: GestureDetector(
                               onTap: () => _showNumberInput(
-                                title: '누적 발전량 입력',
+                                title: '누적발전량 입력',
                                 currentValue:
                                     widget.entry.cumulativeGenerationMwh,
                                 onValueChanged: (v) {

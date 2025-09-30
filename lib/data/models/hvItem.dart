@@ -30,7 +30,7 @@ class SimpleHvLogEntry {
   double measuredVoltageRtoS; // R~S 측정 전압 (V)
   double measuredVoltageStoT; // S~T 측정 전압 (V)
   double measuredVoltageRtoT; // R~T 측정 전압 (V)
-  double measuredVoltageN;    // N   측정 전압 (V)
+  double measuredVoltageN; // N   측정 전압 (V)
 
   // ── 점검 결과 입력 ─────────────────────────
   // 레거시: 한 덩어리 문자열 (남겨둠 / 호환용)
@@ -59,13 +59,21 @@ class SimpleHvLogEntry {
   String managerSubName;
 
   Uint8List? managerMainSignature; // 안전관리자(정) 서명
-  Uint8List? managerSubSignature;  // 안전관리자(부) 서명
+  Uint8List? managerSubSignature; // 안전관리자(부) 서명
 
   // ── 저압 지침(추가) ────────────────────────
-  double guidelineLowPre5;     // 전일
+  double guidelineLowPre5; // 전일
   double guidelineLowCurrent9; // 현재
-  double guidelineLowSum;      // 지침 차
-  double preMonthGenerationKwh;// 전월 발전량
+  double guidelineLowSum; // 지침 차
+  double preMonthGenerationKwh; // 전월 발전량
+
+  double guidelineLabel4; // ④ 라벨 탭 시 저장
+  double guidelineLabel5; // ⑤ 라벨 탭 시 저장
+  double guidelineLabel6; // ⑥ 라벨 탭 시 저장
+
+  // ⬇️⬇️ [신규] 라벨 탭 전용 값 (전일⑤ / 현일⑨)
+  double guidelineLowLabel5; // 전일 ⑤ 라벨에 저장되는 값
+  double guidelineLowLabel9; // 현일 ⑨ 라벨에 저장되는 값
 
   SimpleHvLogEntry({
     required this.selectedBoardId,
@@ -122,6 +130,14 @@ class SimpleHvLogEntry {
     this.guidelineLowCurrent9 = 0.0,
     this.guidelineLowSum = 0.0,
     this.preMonthGenerationKwh = 0.0,
+
+    // [신규] 라벨 탭 전용 기본값
+    this.guidelineLabel4 = 0.0,
+    this.guidelineLabel5 = 0.0,
+    this.guidelineLabel6 = 0.0,
+
+    this.guidelineLowLabel5 = 0.0,
+    this.guidelineLowLabel9 = 0.0,
   });
 
   // ── JSON 역직렬화 ──────────────────────────
@@ -209,66 +225,78 @@ class SimpleHvLogEntry {
       managerSubName: j['managerSubName'] ?? '',
       managerMainSignature: _bytes(j['managerMainSignature'] as String?),
       managerSubSignature: _bytes(j['managerSubSignature'] as String?),
+
+      guidelineLabel4: _parseDouble(j['guidelineLabel4']),
+      guidelineLabel5: _parseDouble(j['guidelineLabel5']),
+      guidelineLabel6: _parseDouble(j['guidelineLabel6']),
+      guidelineLowLabel5: _parseDouble(j['guidelineLowLabel5']),
+      guidelineLowLabel9: _parseDouble(j['guidelineLowLabel9']),
     );
   }
 
   // ── JSON 직렬화 ────────────────────────────
   Map<String, dynamic> toJson() => {
-        'selectedBoardId': selectedBoardId,
-        'lowVoltageItems': lowVoltageItems.map((e) => e.toJson()).toList(),
-        'highVoltageItems': highVoltageItems.map((e) => e.toJson()).toList(),
-        'solarItems': solarItems.map((e) => e.toJson()).toList(),
+    'selectedBoardId': selectedBoardId,
+    'lowVoltageItems': lowVoltageItems.map((e) => e.toJson()).toList(),
+    'highVoltageItems': highVoltageItems.map((e) => e.toJson()).toList(),
+    'solarItems': solarItems.map((e) => e.toJson()).toList(),
 
-        'transmissionRtoS': transmissionRtoS,
-        'transmissionStoT': transmissionStoT,
-        'transmissionRtoT': transmissionRtoT,
+    'transmissionRtoS': transmissionRtoS,
+    'transmissionStoT': transmissionStoT,
+    'transmissionRtoT': transmissionRtoT,
 
-        'pvVoltage': pvVoltage,
-        'currentGenerationKwh': currentGenerationKwh,
-        'cumulativeGenerationMwh': cumulativeGenerationMwh,
+    'pvVoltage': pvVoltage,
+    'currentGenerationKwh': currentGenerationKwh,
+    'cumulativeGenerationMwh': cumulativeGenerationMwh,
 
-        'maxPower': maxPower,
-        'avgPower': avgPower,
-        'powerRatio': powerRatio,
-        'powerFactor': powerFactor,
+    'maxPower': maxPower,
+    'avgPower': avgPower,
+    'powerRatio': powerRatio,
+    'powerFactor': powerFactor,
 
-        'measuredVoltageRtoS': measuredVoltageRtoS,
-        'measuredVoltageStoT': measuredVoltageStoT,
-        'measuredVoltageRtoT': measuredVoltageRtoT,
-        'measuredVoltageN': measuredVoltageN,
+    'measuredVoltageRtoS': measuredVoltageRtoS,
+    'measuredVoltageStoT': measuredVoltageStoT,
+    'measuredVoltageRtoT': measuredVoltageRtoT,
+    'measuredVoltageN': measuredVoltageN,
 
-        'inspectionResultNumeric': inspectionResultNumeric,
-        'inspectionResultLines': List<String>.from(inspectionResultLines),
-        'inspectionResultImage':
-            inspectionResultImage != null ? base64Encode(inspectionResultImage!) : null,
+    'inspectionResultNumeric': inspectionResultNumeric,
+    'inspectionResultLines': List<String>.from(inspectionResultLines),
+    'inspectionResultImage': inspectionResultImage != null
+        ? base64Encode(inspectionResultImage!)
+        : null,
 
-        'guidelineCurrent4': guidelineCurrent4,
-        'guidelineCurrent5': guidelineCurrent5,
-        'guidelineCurrent6': guidelineCurrent6,
-        'guidelineCurrentSum': guidelineCurrentSum,
-        'guidelinePrev9': guidelinePrev9,
-        'guidelinePrev10': guidelinePrev10,
-        'guidelinePrev11': guidelinePrev11,
-        'guidelinePrevSum': guidelinePrevSum,
+    'guidelineCurrent4': guidelineCurrent4,
+    'guidelineCurrent5': guidelineCurrent5,
+    'guidelineCurrent6': guidelineCurrent6,
+    'guidelineCurrentSum': guidelineCurrentSum,
+    'guidelinePrev9': guidelinePrev9,
+    'guidelinePrev10': guidelinePrev10,
+    'guidelinePrev11': guidelinePrev11,
+    'guidelinePrevSum': guidelinePrevSum,
 
-        'guidelineLowPre5': guidelineLowPre5,
-        'guidelineLowCurrent9': guidelineLowCurrent9,
-        'guidelineLowSum': guidelineLowSum,
-        'preMonthGenerationKwh': preMonthGenerationKwh,
+    'guidelineLowPre5': guidelineLowPre5,
+    'guidelineLowCurrent9': guidelineLowCurrent9,
+    'guidelineLowSum': guidelineLowSum,
+    'preMonthGenerationKwh': preMonthGenerationKwh,
 
-        'inspectorName': inspectorName,
-        'managerMainName': managerMainName,
-        'managerSubName': managerSubName,
+    'inspectorName': inspectorName,
+    'managerMainName': managerMainName,
+    'managerSubName': managerSubName,
 
-        'managerMainSignature':
-            (managerMainSignature == null || managerMainSignature!.isEmpty)
-                ? null
-                : base64Encode(managerMainSignature!),
-        'managerSubSignature':
-            (managerSubSignature == null || managerSubSignature!.isEmpty)
-                ? null
-                : base64Encode(managerSubSignature!),
-      };
+    'managerMainSignature':
+        (managerMainSignature == null || managerMainSignature!.isEmpty)
+        ? null
+        : base64Encode(managerMainSignature!),
+    'managerSubSignature':
+        (managerSubSignature == null || managerSubSignature!.isEmpty)
+        ? null
+        : base64Encode(managerSubSignature!),
+    'guidelineLabel4': guidelineLabel4,
+    'guidelineLabel5': guidelineLabel5,
+    'guidelineLabel6': guidelineLabel6,
+    'guidelineLowLabel5': guidelineLowLabel5,
+    'guidelineLowLabel9': guidelineLowLabel9,
+  };
 
   // ── 유틸 ──────────────────────────────────
   static double _parseDouble(dynamic v) {

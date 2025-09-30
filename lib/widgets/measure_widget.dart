@@ -117,135 +117,236 @@ class _GuidelineInputWidgetState extends State<GuidelineInputWidget> {
     ),
   );
 
- @override
-Widget build(BuildContext context) {
-  return Container(
-    decoration: BoxDecoration(
-      border: Border(
-        bottom: BorderSide(color: Colors.black, width: 1),
-        left: BorderSide(color: Colors.black, width: 1),
-        right: BorderSide(color: Colors.black, width: 1),
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Colors.black, width: 1),
+          left: BorderSide(color: Colors.black, width: 1),
+          right: BorderSide(color: Colors.black, width: 1),
+        ),
       ),
-    ),
-    child: LayoutBuilder(
-      builder: (ctx, constraints) {
-        // ✅ 한 행만 쓰므로 전체 높이를 그대로 사용
-        final rowH = constraints.maxHeight;
-        final fontSize = 8.0;
+      child: LayoutBuilder(
+        builder: (ctx, constraints) {
+          // ✅ 한 행만 쓰므로 전체 높이를 그대로 사용
+          final rowH = constraints.maxHeight;
+          final fontSize = 8.0;
 
-        return Column(
-          children: [
-            // ── 1행: 한전(현 지침) ──
-            SizedBox(
-              height: rowH,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _textCell('계량기 지침', fontSize, 3),
-
-                  _textCell('④', 9.0, 1),
-                  Expanded(
-                    flex: 3,
-                    child: GestureDetector(
-                      onTap: () => _showAndHandleInput(
-                        title: '계량기지침 4입력',
-                        currentValue: widget.entry.guidelineCurrent4,
-                        handleValue: (v) {
-                          widget.entry.guidelineCurrent4 = v;
-                          widget.entry.guidelineCurrentSum =
-                              widget.entry.guidelineCurrent4 +
-                              widget.entry.guidelineCurrent5 +
-                              widget.entry.guidelineCurrent6;
+          return Column(
+            children: [
+              // ── 1행: 한전(현 지침) ──
+              SizedBox(
+                height: rowH,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                     _textCell('계량기 지침', fontSize, 3),
+                    
+                    _labelCell(
+                      text: widget.entry.guidelineLabel4 == 0
+                          ? '④'
+                          : _fmt(
+                              widget.entry.guidelineLabel4,
+                            ), // 값 있으면 DB값, 없으면 '④'
+                      fontSize: 8.0,
+                      flex: 1,
+                      onTap: () => _showAndHandleInput1(
+                        title: '④',
+                        fieldName: 'guidelineLabel4',
+                        currentValue: widget.entry.guidelineLabel4, // ← 새 필드
+                        apply: (v) {
+                          widget.entry.guidelineLabel4 = v; // ← 새 필드에 저장
+                          // 합계는 기존 current 4/5/6 기반이면 건드리지 않음
                         },
                       ),
-                      child: Container(
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300, width: 0.5),
-                          color: Colors.white,
+                    ),
+                    // 값 셀은 기존대로 guidelineCurrent4 표시/편집 유지
+                    Expanded(
+                      flex: 3,
+                      child: GestureDetector(
+                        onTap: () => _showAndHandleInput1(
+                          title: '④',
+                          fieldName: 'guidelineCurrent4',
+                          currentValue: widget.entry.guidelineCurrent4,
+                          apply: (v) {
+                            widget.entry.guidelineCurrent4 = v;
+                            widget.entry.guidelineCurrentSum =
+                                widget.entry.guidelineCurrent4 +
+                                widget.entry.guidelineCurrent5 +
+                                widget.entry.guidelineCurrent6;
+                          },
                         ),
-                        child: Text(
-                          _fmt(widget.entry.guidelineCurrent4),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: fontSize),
+                        child: Container(
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              width: 0.5,
+                            ),
+                            color: Colors.white,
+                          ),
+                          child: Text(
+                            _fmt(widget.entry.guidelineCurrent4),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: fontSize),
+                          ),
                         ),
                       ),
                     ),
-                  ),
 
-                  _textCell('⑤', 9.0, 1),
-                  Expanded(
-                    flex: 3,
-                    child: GestureDetector(
-                      onTap: () => _showAndHandleInput(
-                        title: '계량기지침 5입력',
-                        currentValue: widget.entry.guidelineCurrent5,
-                        handleValue: (v) {
-                          widget.entry.guidelineCurrent5 = v;
-                          widget.entry.guidelineCurrentSum =
-                              widget.entry.guidelineCurrent4 +
-                              widget.entry.guidelineCurrent5 +
-                              widget.entry.guidelineCurrent6;
-                        },
+                    // ⑤
+                    _labelCell(
+                      text: widget.entry.guidelineLabel4 == 0
+                          ? '⑤'
+                          : _fmt(
+                              widget.entry.guidelineLabel5,
+                            ), // 값 있으면 DB값, 없으면 '④'
+
+                      fontSize: 8.0,
+                      flex: 1,
+                      onTap: () => _showAndHandleInput1(
+                        title: '입력',
+                        fieldName: 'guidelineLabel5',
+                        currentValue: widget.entry.guidelineLabel5,
+                        apply: (v) => widget.entry.guidelineLabel5 = v,
                       ),
-                      child: Container(
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300, width: 0.5),
-                          color: Colors.white,
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: GestureDetector(
+                        onTap: () => _showAndHandleInput1(
+                          title: '입력',
+                          fieldName: 'guidelineCurrent5',
+                          currentValue: widget.entry.guidelineCurrent5,
+                          apply: (v) {
+                            widget.entry.guidelineCurrent5 = v;
+                            widget.entry.guidelineCurrentSum =
+                                widget.entry.guidelineCurrent4 +
+                                widget.entry.guidelineCurrent5 +
+                                widget.entry.guidelineCurrent6;
+                          },
                         ),
-                        child: Text(
-                          _fmt(widget.entry.guidelineCurrent5),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: fontSize),
+                        child: Container(
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              width: 0.5,
+                            ),
+                            color: Colors.white,
+                          ),
+                          child: Text(
+                            _fmt(widget.entry.guidelineCurrent5),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: fontSize),
+                          ),
                         ),
                       ),
                     ),
-                  ),
 
-                  _textCell('⑥', 9.0, 1),
-                  Expanded(
-                    flex: 3,
-                    child: GestureDetector(
-                      onTap: () => _showAndHandleInput(
-                        title: '계량기지침 6입력',
-                        currentValue: widget.entry.guidelineCurrent6,
-                        handleValue: (v) {
-                          widget.entry.guidelineCurrent6 = v;
-                          widget.entry.guidelineCurrentSum =
-                              widget.entry.guidelineCurrent4 +
-                              widget.entry.guidelineCurrent5 +
-                              widget.entry.guidelineCurrent6;
-                        },
+                    // ⑥
+                    _labelCell(
+                       text: widget.entry.guidelineLabel4 == 0
+                          ? '⑥'
+                          : _fmt(
+                              widget.entry.guidelineLabel6,
+                            ), // 값 있으면 DB값, 없으면 '④'
+                      fontSize: 8.0,
+                      flex: 1,
+                      onTap: () => _showAndHandleInput1(
+                        title: '입력',
+                        fieldName: 'guidelineLabel6',
+                        currentValue: widget.entry.guidelineLabel6,
+                        apply: (v) => widget.entry.guidelineLabel6 = v,
                       ),
-                      child: Container(
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300, width: 0.5),
-                          color: Colors.white,
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: GestureDetector(
+                        onTap: () => _showAndHandleInput1(
+                          title: '⑥',
+                          fieldName: 'guidelineCurrent6',
+                          currentValue: widget.entry.guidelineCurrent6,
+                          apply: (v) {
+                            widget.entry.guidelineCurrent6 = v;
+                            widget.entry.guidelineCurrentSum =
+                                widget.entry.guidelineCurrent4 +
+                                widget.entry.guidelineCurrent5 +
+                                widget.entry.guidelineCurrent6;
+                          },
                         ),
-                        child: Text(
-                          _fmt(widget.entry.guidelineCurrent6),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: fontSize),
+                        child: Container(
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              width: 0.5,
+                            ),
+                            color: Colors.white,
+                          ),
+                          child: Text(
+                            _fmt(widget.entry.guidelineCurrent6),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: fontSize),
+                          ),
                         ),
                       ),
                     ),
-                  ),
 
-                  _textCell('금일지침계', fontSize, 3),
-                  _valueCell(widget.entry.guidelineCurrentSum, fontSize, 3),
-                  _textCell('kWh', fontSize, 1),
-                ],
+                    _textCell('금일지침계', fontSize, 3),
+                    _valueCell(widget.entry.guidelineCurrentSum, fontSize, 3),
+                    _textCell('kWh', fontSize, 1),
+                  ],
+                ),
               ),
-            ),
 
-            // ❌ 아래 2행(한전 전 지침) 블록은 통째로 제거했습니다.
-          ],
-        );
-      },
-    ),
-  );
-}
+              // ❌ 아래 2행(한전 전 지침) 블록은 통째로 제거했습니다.
+            ],
+          );
+        },
+      ),
+    );
+  }
 
+  Future<void> _showAndHandleInput1({
+    required String title,
+    required String fieldName, // 부모 콜백용 식별자
+    required double currentValue,
+    required void Function(double v) apply,
+  }) async {
+    final result = await showNumericKeypad(
+      context,
+      title: title,
+      initialValue: currentValue,
+    );
+    if (result == null) return;
+
+    setState(() => apply(result)); // 모델에 반영
+    widget.onChanged?.call(fieldName, result);
+    // 필요 시: await widget.onSave?.call(widget.entry);
+  }
+
+  Widget _labelCell({
+    required String text,
+    required double fontSize,
+    required int flex,
+    required VoidCallback onTap,
+  }) {
+    final child = Container(
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey.shade300, width: 0.5),
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(text, style: TextStyle(fontSize: fontSize)),
+      ),
+    );
+    return Expanded(
+      flex: flex,
+      child: InkWell(onTap: onTap, child: child),
+    );
+  }
 }

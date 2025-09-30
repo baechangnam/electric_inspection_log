@@ -63,7 +63,10 @@ class _ExcelGridState extends State<ExcelGridLow> {
   late final List<InspectionEntry> rights;
 
   late final String weekdayLabel;
-  late final String formattedDate;
+    DateTime _date = DateTime.now();
+
+  // 요일 없이 년/월/일만
+  String get formattedDate => '${_date.year}년${_date.month}월${_date.day}일';
 
   String incomingCapacity = '';
   String generationCapacity = '';
@@ -94,10 +97,10 @@ class _ExcelGridState extends State<ExcelGridLow> {
     return re.hasMatch(s);
   }
 
-  final List<String> leftTitles = [
-    '인입구 배선',
+   final List<String> leftTitles = [
+    '인입구배선',
     '배.분전반',
-    '배선용 차단기',
+    '배선용차단기',
     '누전차단기',
     '개폐기',
     '배선',
@@ -113,7 +116,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
     '충전장치',
   ];
   final List<String> middleTitles = [
-    '가공 전선로',
+    '가공전선로',
     '지중전선로',
     '수배전용개폐기',
     '배선(모선)',
@@ -124,20 +127,20 @@ class _ExcelGridState extends State<ExcelGridLow> {
     '수.배전반',
     '계전기류',
     '차단기류',
-    '전력용 콘덴서',
+    '전력용콘덴서',
     '보호설비',
     '부하설비',
     '접지설비',
     '기타설비',
   ];
   final List<String> rightTitles = [
-    '태양광전지 시설상태',
-    '시스템가동 정지상태',
-    '인버터 병렬운전상태',
-    '계통연계 운전상태',
-    '접속 단자함 상태',
-    '접지선상태,탈착여부',
-    '보호시설의 설치상태',
+    '모듈시설상태',
+    '인버터설비상태',
+    '배.분전반상태',
+    '선로상태',
+    '접지설비상태',
+    '구조물상태',
+    '접속단자함상태',
     '',
     '',
     '',
@@ -155,8 +158,7 @@ class _ExcelGridState extends State<ExcelGridLow> {
   void initState() {
     super.initState();
 
-    final now = DateTime.now();
-    formattedDate = '${now.year}년${now.month}월${now.day}일';
+
     _loadName();
 
     _data = List.generate(rows, (_) => List.generate(columns, (_) => ''));
@@ -170,6 +172,51 @@ class _ExcelGridState extends State<ExcelGridLow> {
       highVoltageItems: high,
       solarItems: solar,
     );
+  }
+
+  Future<void> _pickDate(BuildContext context) async {
+    final first = DateTime(2000, 1, 1);
+    final last = DateTime(2100, 12, 31);
+
+    // 범위 안으로 보정
+    var initial = _date.isBefore(first)
+        ? first
+        : _date.isAfter(last)
+        ? last
+        : _date;
+
+    final picked = await showDialog<DateTime>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('날짜 선택'),
+          content: SizedBox(
+            height: 280,
+            width: 320,
+            child: CalendarDatePicker(
+              initialDate: initial,
+              firstDate: first,
+              lastDate: last,
+              // 날짜 탭하면 바로 닫히면서 값 반환
+              onDateChanged: (d) => Navigator.pop(ctx, d),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('취소'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _date = picked; // formattedDate는 게터라 자동 반영됨
+      });
+    }
   }
 
   void _onAnyLineChanged(
@@ -948,6 +995,22 @@ class _ExcelGridState extends State<ExcelGridLow> {
         _inspectorController.text = loaded.inspectorName ?? '';
         _managerMainController.text = loaded.managerMainName ?? '';
         _managerSubController.text = loaded.managerSubName ?? '';
+
+        hvLogEntry.measuredVoltageRtoS = 0;
+        hvLogEntry.measuredVoltageStoT = 0;
+        hvLogEntry.measuredVoltageRtoT = 0;
+        hvLogEntry.measuredVoltageN = 0;
+        hvLogEntry.maxPower = 0;
+        hvLogEntry.avgPower = 0;
+        hvLogEntry.powerFactor = 0;
+
+        hvLogEntry.guidelineCurrent4 = 0;
+        hvLogEntry.guidelineCurrent5 = 0;
+        hvLogEntry.guidelineCurrent6 = 0;
+        hvLogEntry.guidelineCurrentSum = 0;
+        hvLogEntry.guidelineLowPre5 = 0;
+        hvLogEntry.guidelineLowCurrent9 = 0;
+        hvLogEntry.guidelineLowSum = 0;
       });
     } else {
       // 4-B) 신규 엔트리면 즉시 저장
@@ -960,13 +1023,33 @@ class _ExcelGridState extends State<ExcelGridLow> {
         _inspectorController.clear();
         _managerMainController.clear();
         _managerSubController.clear();
+
+        hvLogEntry.measuredVoltageRtoS = 0;
+        hvLogEntry.measuredVoltageStoT = 0;
+        hvLogEntry.measuredVoltageRtoT = 0;
+        hvLogEntry.measuredVoltageN = 0;
+        hvLogEntry.maxPower = 0;
+        hvLogEntry.avgPower = 0;
+        hvLogEntry.powerFactor = 0;
+        hvLogEntry.guidelineCurrent4 = 0;
+        hvLogEntry.guidelineCurrent5 = 0;
+        hvLogEntry.guidelineCurrent6 = 0;
+        hvLogEntry.guidelineCurrentSum = 0;
+        hvLogEntry.guidelineLowPre5 = 0;
+        hvLogEntry.guidelineLowCurrent9 = 0;
+        hvLogEntry.guidelineLowSum = 0;
       });
     }
-
-    hvLogEntry.powerRatio = double.tryParse(sRatio) ?? 0;
-
     if (mounted) {
       await _onTapWeather();
+    }
+
+    if (loaded != null) {
+      // 기존 데이터면 덮어쓰지 않음 (삭제)
+      // hvLogEntry.powerRatio = double.tryParse(sRatio) ?? 0;  // ❌ 제거
+    } else {
+      // 신규만 보드 기본 ratio로 세팅
+      hvLogEntry.powerRatio = double.tryParse(sRatio) ?? 0; // ✅ 유지
     }
   }
 
@@ -1312,29 +1395,13 @@ class _ExcelGridState extends State<ExcelGridLow> {
                         ),
 
                         // P~T : 요일, 월, 년 병합
-                        Positioned(
+                         Positioned(
                           left: 17 * cellW,
                           top: 0,
                           width: 6 * cellW,
                           height: cellH,
                           child: GestureDetector(
-                            onTap: () async {
-                              final picked = await showDatePicker(
-                                context: context,
-                                initialDate: now,
-                                firstDate: DateTime(2000),
-                                lastDate: DateTime(2100),
-                                locale: const Locale("ko", "KR"), // 한국어 달력
-                              );
-
-                              if (picked != null) {
-                                setState(() {
-                                  now = picked;
-                                  formattedDate =
-                                      '${picked.year}년${picked.month}월${picked.day}일';
-                                });
-                              }
-                            },
+                            onTap: () => _pickDate(context),
                             child: Container(
                               alignment: Alignment.center,
                               padding: const EdgeInsets.symmetric(
@@ -1345,17 +1412,14 @@ class _ExcelGridState extends State<ExcelGridLow> {
                                 border: border,
                               ),
                               child: Text(
-                                formattedDate,
+                                // ← const 제거!
+                                formattedDate, // ← 계산 프로퍼티 사용
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.normal,
-                                ),
+                                style: const TextStyle(fontSize: 9),
                               ),
                             ),
                           ),
                         ),
-
                         // U~V : 일기 텍스트 병합
                         Positioned(
                           left: 23 * cellW,
