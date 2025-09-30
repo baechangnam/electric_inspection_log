@@ -33,7 +33,7 @@ class _DrawingDialogContentSignState extends State<DrawingDialogContentSign> {
         // 타이틀
         const Padding(
           padding: EdgeInsets.all(8.0),
-          child: Text('터치로 서명하세요', style: TextStyle(fontSize: 18)),
+          child: Text('터치로 입력하세요.', style: TextStyle(fontSize: 18)),
         ),
 
         // 드로잉 캔버스 (비율 고정)

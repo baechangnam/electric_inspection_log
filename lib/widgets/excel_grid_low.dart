@@ -11,6 +11,7 @@ import 'package:electric_inspection_log/views/main/drawing_screen.dart';
 import 'package:electric_inspection_log/views/main/template_screen.dart';
 import 'package:electric_inspection_log/widgets/confrim_widget.dart';
 import 'package:electric_inspection_log/widgets/drawing_popup.dart';
+import 'package:electric_inspection_log/widgets/drawing_popup_sign.dart';
 import 'package:electric_inspection_log/widgets/empty_line.dart';
 import 'package:electric_inspection_log/widgets/export_excel.dart';
 import 'package:electric_inspection_log/widgets/export_excel_low.dart';
@@ -1011,6 +1012,17 @@ class _ExcelGridState extends State<ExcelGridLow> {
         hvLogEntry.guidelineLowPre5 = 0;
         hvLogEntry.guidelineLowCurrent9 = 0;
         hvLogEntry.guidelineLowSum = 0;
+        hvLogEntry.transmissionRtoS = 0;
+        hvLogEntry.transmissionStoT = 0;
+        hvLogEntry.transmissionRtoT = 0;
+        hvLogEntry.pvVoltage = 0;
+        hvLogEntry.currentGenerationKwh = 0;
+        hvLogEntry.cumulativeGenerationMwh = 0;
+        hvLogEntry.preMonthGenerationKwh = 0;
+        hvLogEntry.inspectionResultImage = null;
+        hvLogEntry.inspectionResultLines = const ['', '', '', ''];
+           hvLogEntry.inspectionResultNumeric ='';
+
       });
     } else {
       // 4-B) 신규 엔트리면 즉시 저장
@@ -1038,6 +1050,16 @@ class _ExcelGridState extends State<ExcelGridLow> {
         hvLogEntry.guidelineLowPre5 = 0;
         hvLogEntry.guidelineLowCurrent9 = 0;
         hvLogEntry.guidelineLowSum = 0;
+        hvLogEntry.transmissionRtoS = 0;
+        hvLogEntry.transmissionStoT = 0;
+        hvLogEntry.transmissionRtoT = 0;
+        hvLogEntry.pvVoltage = 0;
+        hvLogEntry.currentGenerationKwh = 0;
+        hvLogEntry.cumulativeGenerationMwh = 0;
+        hvLogEntry.preMonthGenerationKwh = 0;
+        hvLogEntry.inspectionResultImage = null;
+        hvLogEntry.inspectionResultLines = const ['', '', '', ''];
+           hvLogEntry.inspectionResultNumeric ='';
       });
     }
     if (mounted) {
@@ -2661,14 +2683,27 @@ class _ExcelGridState extends State<ExcelGridLow> {
                           final pngBytes = await showDialog<Uint8List>(
                             context: context,
                             barrierDismissible: false,
-                            builder: (ctx) => Dialog(
-                              child: SizedBox(
-                                width: MediaQuery.of(context).size.width * 0.8,
-                                height:
-                                    MediaQuery.of(context).size.height * 0.3,
-                                child: DrawingDialogContent(),
-                              ),
-                            ),
+                            builder: (ctx) {
+                              return Align(
+                                alignment: Alignment.topCenter, // ⬅️ 화면 상단 정렬
+                                child: Material(
+                                  type: MaterialType.transparency, // 배경은 투명
+                                  child: Container(
+                                    margin: const EdgeInsets.only(
+                                      top: 40,
+                                    ), // 상태바와 간격
+                                    width: MediaQuery.of(ctx).size.width * 0.8,
+                                    height:
+                                        MediaQuery.of(ctx).size.height * 0.3,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const DrawingDialogContentSign(),
+                                  ),
+                                ),
+                              );
+                            },
                           );
                           if (pngBytes != null) {
                             setState(() {

@@ -11,11 +11,12 @@ import 'package:electric_inspection_log/views/auth/login_screen.dart';
 import 'data/service/user_service.dart';
 import 'data/repository/user_repository.dart';
 import 'viewmodels/auth/login_viewmodel.dart';
+// ignore: depend_on_referenced_packages
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-    WidgetsFlutterBinding.ensureInitialized();
-    
   final svc = UserService();
   final repo = UserRepositoryImpl(svc);
 
@@ -37,7 +38,14 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: '전기점검일지',
       debugShowCheckedModeBanner: false,
-      
+      locale: const Locale('ko', 'KR'), // ← 한국어 Locale 지정
+      supportedLocales: const [Locale('en', 'US'), Locale('ko', 'KR')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+
       initialRoute: '/intro',
       routes: {
         '/intro': (_) => const IntroScreen(),
